@@ -11,4 +11,14 @@ interface WeatherService {
         @Query("appid") apiKey: String,
         @Query("units") units: String = "metric"
     ): WeatherResponse
+
+    @GET("weather")
+    suspend fun getInfoFromLatLonAndUnitAndLang(
+        @Query("lat") lat: Double,
+        @Query("lon") lon: Double,
+        @Query("appid") apiKey: String,
+        @Query("units") units: String = "metric",
+        @Query("lang") lang: String = "ar"
+    ): WeatherResponse
+    //https://api.openweathermap.org/data/2.5/weather?q=London&appid=a48ab7f2ea1db8788b4a980035313863&units=metric&lang=ar
 }

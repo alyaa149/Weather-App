@@ -1,5 +1,6 @@
 package com.example.weatherapp.data.remote
 
+import com.example.weatherapp.data.models.WeatherForecastResponse
 import com.example.weatherapp.data.models.WeatherResponse
 
 class RemoteDataSourceImpl  (
@@ -17,9 +18,16 @@ class RemoteDataSourceImpl  (
 
     }
 
-    override suspend fun getCurrentFiveDaysWather() {
-        TODO("Not yet implemented")
+    override suspend fun get5DaysWeatherForecast(
+        lat: Double,
+        lon: Double,
+        units: String,
+        lang: String
+    ): WeatherForecastResponse {
+        return weatherService.get5DaysWeatherForecast(lat, lon, apiKey, units, lang)
     }
+
+
 
 
 }

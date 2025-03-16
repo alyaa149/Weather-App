@@ -62,19 +62,29 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
            // val weatherViewModel: WeatherViewModel = viewModel()
-            TestScreen(
-            viewModel(
-                factory = WeatherViewModelFactory(
-                    RepoImpl(
-                        RemoteDataSourceImpl(RetrofitHelper.service),
-                        LocalDataSourceImpl()
-                    )
-
-                )
-            )
-            )
+//            TestScreen(
+//            viewModel(
+//                factory = WeatherViewModelFactory(
+//                    RepoImpl(
+//                        RemoteDataSourceImpl(RetrofitHelper.service),
+//                        LocalDataSourceImpl()
+//                    )
+//
+//                )
+//            )
+//            )
            // weatherViewModel.fetchWeather("London")
-         //   AppNavigation()
+           AppNavigation(
+               viewModel(
+                   factory = WeatherViewModelFactory(
+                       RepoImpl(
+                           RemoteDataSourceImpl(RetrofitHelper.service),
+                           LocalDataSourceImpl()
+                       )
+
+                   )
+               )
+           )
         }
     }
 }
@@ -196,12 +206,12 @@ fun BottomNavigationBar(navController: NavController) {
 
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(viewModel: WeatherViewModel) {
     val navController = rememberNavController()
     Scaffold(
         bottomBar = { BottomNavigationBar(navController) }
     ) { paddingValues ->
-        setUpNavHost(navController,paddingValues)
+        SetUpNavHost(viewModel,navController,paddingValues)
     }
 }
 

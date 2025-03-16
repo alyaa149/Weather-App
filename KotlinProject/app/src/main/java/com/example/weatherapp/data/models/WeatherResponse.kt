@@ -8,3 +8,7 @@ data class WeatherResponse(val main: Main?,
                            val clouds: Clouds?,
                            val sys: Sys?,
                            val name: String?)
+
+
+
+

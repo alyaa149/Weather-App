@@ -12,7 +12,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 //
 @Composable
-fun setUpNavHost(navController: NavHostController,paddingValues: PaddingValues) {
+fun SetUpNavHost(viewModel: WeatherViewModel,navController: NavHostController,paddingValues: PaddingValues) {
    // val navController = rememberNavController()
 
     NavHost(
@@ -20,14 +20,15 @@ fun setUpNavHost(navController: NavHostController,paddingValues: PaddingValues) 
         startDestination = ScreenRoutes.HomeScreen,
         modifier = Modifier.padding(paddingValues)
     ) {
+
         composable<ScreenRoutes.HomeScreen> {
-            HomeUI(navController)
+            HomeUI(viewModel,navController)
         }
         composable<ScreenRoutes.FavLocScreen> {
-            FavLocUI(navController)
+            FavLocUI(viewModel,navController)
         }
         composable<ScreenRoutes.SettingsScreen> {
-            SettingsUI(navController)
+            SettingsUI(viewModel,navController)
         }
     }
 }

@@ -22,7 +22,7 @@ fun SetUpNavHost(viewModel: WeatherViewModel,navController: NavHostController,pa
     ) {
 
         composable<ScreenRoutes.HomeScreen> {
-            HomeUI(viewModel,navController)
+            NewWeatherScreen()
         }
         composable<ScreenRoutes.FavLocScreen> {
             FavLocUI(viewModel,navController)

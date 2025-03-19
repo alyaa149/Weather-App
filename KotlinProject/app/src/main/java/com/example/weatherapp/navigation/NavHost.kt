@@ -1,19 +1,21 @@
-package com.example.weatherapp
+package com.example.weatherapp.navigation
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
+import com.example.weatherapp.Favorites.View.FavLocUI
+import com.example.weatherapp.Home.View.HomeWeatherScreen
+import com.example.weatherapp.Home.ViewModel.HomeViewModel
+import com.example.weatherapp.Settings.View.SettingsUI
+import com.example.weatherapp.WeatherViewModel
+
 //
 @Composable
-fun SetUpNavHost(viewModel: WeatherViewModel,navController: NavHostController,paddingValues: PaddingValues) {
-   // val navController = rememberNavController()
+fun SetUpNavHost(viewModel: Any, navController: NavHostController, paddingValues: PaddingValues) {
 
     NavHost(
         navController = navController,
@@ -22,13 +24,13 @@ fun SetUpNavHost(viewModel: WeatherViewModel,navController: NavHostController,pa
     ) {
 
         composable<ScreenRoutes.HomeScreen> {
-            NewWeatherScreen()
+            HomeWeatherScreen(viewModel as HomeViewModel,navController)
         }
         composable<ScreenRoutes.FavLocScreen> {
-            FavLocUI(viewModel,navController)
+            FavLocUI(viewModel as WeatherViewModel,navController)
         }
         composable<ScreenRoutes.SettingsScreen> {
-            SettingsUI(viewModel,navController)
+            SettingsUI(viewModel as WeatherViewModel,navController)
         }
     }
 }

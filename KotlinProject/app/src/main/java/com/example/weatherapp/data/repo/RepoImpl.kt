@@ -4,6 +4,7 @@ import com.example.weatherapp.data.local.LocalDataSourceImpl
 import com.example.weatherapp.data.models.WeatherForecastResponse
 import com.example.weatherapp.data.models.WeatherResponse
 import com.example.weatherapp.data.remote.RemoteDataSourceImpl
+import kotlinx.coroutines.flow.Flow
 
 class RepoImpl  (
     private val remoteDataSource: RemoteDataSourceImpl,
@@ -18,7 +19,7 @@ class RepoImpl  (
         lon: Double,
         units: String,
         lang: String
-    ): WeatherResponse {
+    ): Flow<WeatherResponse> {
         return remoteDataSource.getInfoFromLatLonAndUnitAndLang(lat, lon, units, lang)
     }
 
@@ -27,7 +28,14 @@ class RepoImpl  (
         lon: Double,
         units: String,
         lang: String
-    ): WeatherForecastResponse {
+    ): Flow<WeatherForecastResponse> {
         return remoteDataSource.get5DaysWeatherForecast(lat, lon, units, lang)
+    }
+
+    override suspend fun getHourlyWeatherForecast(
+        lat: Double,
+        lon: Double
+    ): Flow<WeatherForecastResponse> {
+        return remoteDataSource.getHourlyWeatherForecast(lat, lon)
     }
 }

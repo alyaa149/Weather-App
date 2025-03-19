@@ -34,4 +34,12 @@ interface WeatherService {
         @Query("lang") lang: String = "en"
     ): WeatherForecastResponse
 
+//https://api.openweathermap.org/data/2.5/forecast?lat=31.27077&lon=30.007815&appid=a48ab7f2ea1db8788b4a980035313863    @Get("forecast")
+    @GET("forecast")
+    suspend fun getHourlyWeatherForecast(
+        @Query("lat") lat: Double,
+        @Query("lon") lon: Double,
+        @Query("appid") apiKey: String
+):WeatherForecastResponse
+
 }

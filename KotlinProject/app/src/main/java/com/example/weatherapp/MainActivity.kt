@@ -1,6 +1,15 @@
 package com.example.weatherapp
 
+import android.Manifest
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.location.Geocoder
+import android.location.Location
+import android.location.LocationManager
 import android.os.Bundle
+import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -14,7 +23,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,52 +30,31 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.BottomAppBar
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
 import com.example.weatherapp.data.local.LocalDataSourceImpl
 import com.example.weatherapp.data.models.HourlyModel
 import com.example.weatherapp.data.remote.RemoteDataSourceImpl
@@ -76,21 +63,27 @@ import com.example.weatherapp.data.repo.RepoImpl
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.runtime.MutableState
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.airbnb.lottie.compose.LottieAnimation
-import com.airbnb.lottie.compose.LottieCompositionSpec
-import com.airbnb.lottie.compose.rememberLottieComposition
+import androidx.core.app.ActivityCompat
+import com.example.weatherapp.Home.ViewModel.HomeViewModelFactory
 import com.example.weatherapp.data.models.FutureModel
+import com.example.weatherapp.navigation.ScreenRoutes
+import com.example.weatherapp.navigation.SetUpNavHost
 import com.example.weatherapp.ui.theme.BabyBlue
 import com.example.weatherapp.ui.theme.Blue
-
-import kotlinx.coroutines.launch
-
+import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.unit.dp
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
+import com.example.weatherapp.Utils.Location.LocationRepository
 
 
 val items = listOf(
@@ -111,252 +104,116 @@ FutureModel("Sat", "cloudy", "Mostly Cloudy", 25, 18)
 )
 
 
+
 class MainActivity : ComponentActivity() {
+    public val REQUEST_LOCATION_CODE = 2005
+
+    public val fusedLocationClient by lazy {
+        LocationServices.getFusedLocationProviderClient(this)
+    }
+//private lateinit var fusedLocationClient: FusedLocationProviderClient
+
+
+    public lateinit var locationState: MutableState<Location>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-           AppNavigation(
-               viewModel(
-                   factory = WeatherViewModelFactory(
-                       RepoImpl(
-                           RemoteDataSourceImpl(RetrofitHelper.service),
-                           LocalDataSourceImpl()
-                       )
+            locationState = remember { mutableStateOf(Location(LocationManager.GPS_PROVIDER)) }
+            AppNavigation(
+                viewModel(
+                    factory = HomeViewModelFactory(
+                        RepoImpl(
+                            RemoteDataSourceImpl(RetrofitHelper.service),
+                            LocalDataSourceImpl()
+                        ),
+                        LocalContext.current,
+                        LocationRepository(fusedLocationClient)
 
-                   )
-               )
-           )
-        }
-    }
-}
-@Composable
-fun NewWeatherScreen() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(Blue,BabyBlue)
+                    )
                 )
             )
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        if (checkPermissions()) {
+            if (isLocationEnabled()) {
+                getFreshLocation()
+            } else {
+                enableLocationServices()
+            }
+        } else {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ),
+                REQUEST_LOCATION_CODE
+            )
+        }
+    }
+
+    private fun isLocationEnabled(): Boolean {
+        val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+                locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+    }
+
+    private fun enableLocationServices() {
+        Toast.makeText(this, "Please enable location services", Toast.LENGTH_SHORT).show()
+        val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+        startActivity(intent)
+    }
+
+    private fun checkPermissions(): Boolean {
+        return (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED) ||
+                (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+                        == PackageManager.PERMISSION_GRANTED)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        if (requestCode == REQUEST_LOCATION_CODE) {
+            if (grantResults.isNotEmpty() &&
+                grantResults[0] == PackageManager.PERMISSION_GRANTED
+            ) {
+                getFreshLocation()
+            } else {
+                Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun getFreshLocation() {
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
         ) {
-            WeatherCard()
-            Text(
-                text = "Today's Forecast",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-
-            HourlyForecast()
-
-            WeatherDetails()
-
-
-
-            Text(
-                text = "Next 5 Days",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-
-            FutureForecast()
+            return
+        }
+        fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
+            location?.let {
+                locationState.value = it
+            } ?: run {
+                Toast.makeText(this, "Failed to get location", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 }
-@Composable
-fun WeatherCard() {
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "Mostly Cloudy",
-                fontSize = 24.sp,
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Image(
-                painter = painterResource(id = R.drawable.cloudy_sunny),
-                contentDescription = null,
-                modifier = Modifier.size(120.dp)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Mon June 17 | 10:00 AM",
-                fontSize = 16.sp,
-                color = Color.White.copy(alpha = 0.8f),
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "25°C",
-                fontSize = 48.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "H: 27°  L: 18°",
-                fontSize = 16.sp,
-                color = Color.White.copy(alpha = 0.8f),
-                textAlign = TextAlign.Center
-            )
-        }
-    }
-
-
-@Composable
-fun WeatherDetails() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 16.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
-        WeatherDetailItem(icon = R.drawable.rain, value = "80%", label = "Rain")
-        WeatherDetailItem(icon = R.drawable.humidity, value = "60%", label = "Humidity")
-        WeatherDetailItem(icon = R.drawable.wind, value = "15 km/h", label = "Wind")
-      //  WeatherDetailItem(icon = R.drawable, value = "1000 hPa", label = "Pressure")
-       // WeatherDetailItem(icon = R.drawable.visibility, value = "10 km", label = "Visibility")
-    }
-}
-
-@Composable
-fun WeatherDetailItem(icon: Int, value: String, label: String) {
-    Column(
-        modifier = Modifier.padding(horizontal = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Image(
-            painter = painterResource(id = icon),
-            contentDescription = null,
-            modifier = Modifier.size(24.dp)
-        )
-        Text(
-            text = value,
-            textAlign = TextAlign.Center,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-        )
-        Text(
-            text = label,
-            textAlign = TextAlign.Center,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-        )
-    }
-}
-@Composable
-fun HourlyForecast() {
-    LazyRow(
-        modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 20.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(items) { item ->
-            FutureModelViewHolder(item)
-        }
-    }
-}
-
-@Composable
-fun FutureForecast() {
-    LazyRow(
-        modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(items2) { item ->
-            FutureItemCard(item)
-        }
-    }
-}
-
-@Composable
-fun FutureItemCard(item: FutureModel) {
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(text = item.day, fontSize = 14.sp, color = Color.White)
-            Spacer(modifier = Modifier.height(4.dp))
-            Image(
-                painter = painterResource(id = getDrawableResourceId(item.picPath)),
-                contentDescription = null,
-                modifier = Modifier.size(45.dp)
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(text = item.status, fontSize = 14.sp, color = Color.White)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(text = "${item.highTemp}°C / ${item.lowTemp}°C", fontSize = 14.sp, color = Color.White)
-        }
-
-}
-
-@Composable
-fun FutureModelViewHolder(model: HourlyModel) {
-    Column(
-        modifier = Modifier
-            .width(90.dp)
-            .wrapContentHeight()
-            .padding(4.dp)
-            .background(
-                color = Blue.copy(alpha = 0.8f),
-                shape = RoundedCornerShape(10.dp)
-            )
-            .padding(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(text = model.hour, textAlign = TextAlign.Center, fontSize = 16.sp, color = Color.White)
-        Image(
-            painter = painterResource(
-                id = getDrawableResourceId(model.picPath)
-            ),
-            contentDescription = null,
-            modifier = Modifier.size(45.dp).padding(8.dp),
-            contentScale = ContentScale.Crop
-        )
-        Text(text = "${model.temp}", textAlign = TextAlign.Center, fontSize = 16.sp, color = Color.White)
-    }
-}
-
-@Composable
-fun getDrawableResourceId(picPath: String): Int {
-    return when (picPath) {
-        "cloudy" -> R.drawable.cloudy
-        "sunny" -> R.drawable.sunny
-        "wind" -> R.drawable.wind
-        "rainy" -> R.drawable.rainy
-        "storm" -> R.drawable.storm
-        else -> R.drawable.cloudy
-    }
-}
-
 
 
 @Composable
@@ -456,7 +313,7 @@ fun BottomNavItem(icon: ImageVector, label: String, isSelected: Boolean, onClick
     }
 }
 @Composable
-fun AppNavigation(viewModel: WeatherViewModel) {
+fun AppNavigation(viewModel: Any) {
     val navController = rememberNavController()
     Scaffold(
 //        bottomBar = {
@@ -464,6 +321,7 @@ fun AppNavigation(viewModel: WeatherViewModel) {
 //            CurvedBottomNavigationBar(navController)
 //        }
     ) { paddingValues ->
-        SetUpNavHost(viewModel,navController,paddingValues)
+        SetUpNavHost(viewModel, navController, paddingValues)
     }
+
 }

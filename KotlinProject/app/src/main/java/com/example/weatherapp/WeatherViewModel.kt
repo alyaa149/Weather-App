@@ -21,38 +21,6 @@ import kotlinx.coroutines.withContext
 class WeatherViewModel (private val repo: RepoImpl): ViewModel() {
 
 
-
-    private val _currentDetails = MutableLiveData<WeatherResponse?>(null)
-    val currentDetails: LiveData<WeatherResponse?> = _currentDetails
-    private val _currentDetailsList = MutableLiveData<WeatherForecastResponse>(null)
-    val currentDetailsList: LiveData<WeatherForecastResponse> = _currentDetailsList
-
-    private val _message = MutableLiveData<String?>(null)
-    val message: LiveData<String?> = _message
-
-
-    fun fetchWeatherFromLatLonUnitLang(lat: Double, lon: Double, units: String, lang: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val response: WeatherResponse =
-                    repo.fetchWeatherFromLatLonUnitLang(lat, lon, units, lang)
-                _currentDetails.postValue(response)
-            } catch (e: Exception) {
-                _message.postValue("Error fetching weather: ${e.message}")
-            }
-        }
-    }
-    fun get5DaysWeatherForecast(lat: Double, lon: Double, units: String, lang: String){
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val response: WeatherForecastResponse =
-                    repo.get5DaysWeatherForecast(lat, lon, units, lang)
-                _currentDetailsList.postValue(response)
-            }catch (e: Exception){
-                _message.postValue("Error fetching weather: ${e.message}")
-            }
-        }
-    }
 }
 class WeatherViewModelFactory(private val repo: RepoImpl) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {

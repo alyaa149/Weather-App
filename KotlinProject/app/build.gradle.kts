@@ -75,6 +75,8 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.8.8")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
     implementation ("com.airbnb.android:lottie-compose:6.1.0")
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+
 
 
 }

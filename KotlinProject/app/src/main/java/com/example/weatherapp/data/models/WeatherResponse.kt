@@ -1,5 +1,6 @@
 package com.example.weatherapp.data.models
 
+import java.util.Date
 
 
 data class WeatherResponse(val main: Main?,
@@ -7,7 +8,11 @@ data class WeatherResponse(val main: Main?,
                            val wind: Wind?,
                            val clouds: Clouds?,
                            val sys: Sys?,
-                           val name: String?)
+                           val name: String?,
+                          val dt_txt
+                           :String?,
+                         val visibility:Int?,
+)
 
 
 

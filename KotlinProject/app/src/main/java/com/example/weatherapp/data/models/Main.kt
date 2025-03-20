@@ -6,8 +6,8 @@ data class Main(val temp: Double,
                 val humidity:String,
                 val pressure:String,
                val sea_level:String,
-                val temp_max :String,
-                val temp_min :String,
+                val temp_max :Double,
+                val temp_min :Double,
 
 )
 

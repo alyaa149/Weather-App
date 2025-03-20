@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.*;
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,8 +21,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -29,10 +34,10 @@ import androidx.navigation.NavHostController
 import com.example.weatherapp.Home.ViewModel.HomeViewModel
 import com.example.weatherapp.R
 import com.example.weatherapp.Response
-import com.example.weatherapp.data.models.FutureModel
 import com.example.weatherapp.data.models.WeatherResponse
 import com.example.weatherapp.ui.theme.BabyBlue
 import com.example.weatherapp.ui.theme.Blue
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -40,7 +45,8 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun HomeWeatherScreen(viewModel: HomeViewModel, navController: NavHostController) {
     val uiState = viewModel.currentDetails.collectAsStateWithLifecycle().value
-    val forecastState = viewModel.nextHoursDetailsList.collectAsStateWithLifecycle().value
+    val hourlyForecast = viewModel.nextHoursDetailsList.collectAsStateWithLifecycle().value
+    val futureDays = viewModel.futureDays.collectAsStateWithLifecycle().value
     val currentDate = viewModel.currentDate
 
     Box(
@@ -48,52 +54,81 @@ fun HomeWeatherScreen(viewModel: HomeViewModel, navController: NavHostController
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(Blue, BabyBlue)
+                    colors = listOf(Blue, BabyBlue, Blue)
                 )
             )
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            when (uiState) {
-                is Response.Loading -> LoadingIndicator()
-                is Response.Success -> {
-                    val weatherData = uiState.data
-                    WeatherCard(weatherData,currentDate)
-                    WeatherDetails(weatherData)
-
-                //    HourlyForecast(com.example.weatherapp.items)
-
-                }
-                is Response.Failure -> {
-                    Log.e("WeatherError", uiState.message.message.toString())
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                when (uiState) {
+                    is Response.Loading -> LoadingIndicator()
+                    is Response.Success -> {
+                        val weatherData = uiState.data
+                        WeatherCard(weatherData, currentDate)
+                        WeatherDetails(weatherData)
+                    }
+                    is Response.Failure -> {
+                        Log.e("WeatherError", uiState.message.message.toString())
+                    }
                 }
             }
 
-            when (forecastState) {
-                is Response.Loading -> LoadingIndicator()
-                is Response.Success -> {
-                    val forecastData = forecastState.data
-                    Text(
-                        text = "Next Hours",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                        color = Color.White,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                        .align(Alignment.CenterHorizontally)
-
-                    )
-                    Log.i("response", "${forecastState.data}")
-
-                   //FutureForecast(forecastData)
-                    HourlyForecast(forecastData)
+            item {
+                when (hourlyForecast) {
+                    is Response.Loading -> LoadingIndicator()
+                    is Response.Success -> {
+                        val forecastData = hourlyForecast.data
+                        SectionTitle("Next Hours")
+                        HourlyForecast(forecastData)
+                    }
+                    is Response.Failure -> {
+                        Log.e("WeatherError", hourlyForecast.message.message.toString())
+                    }
                 }
-                is Response.Failure -> {
-                    Log.e("WeatherError", forecastState.message.message.toString())
+            }
+
+            item {
+                when (futureDays) {
+                    is Response.Loading -> LoadingIndicator()
+                    is Response.Success -> {
+                        val forecastData = futureDays.data
+                        SectionTitle("Future Days")
+                        FutureForecast(forecastData)
+                    }
+                    is Response.Failure -> {
+                        Log.e("WeatherError", futureDays.message.message.toString())
+                    }
                 }
             }
         }
     }
 }
+@RequiresApi(Build.VERSION_CODES.O)
+fun getTheDayOfTheWeek(dateString: String?): String {
+    val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    val outputFormatter = DateTimeFormatter.ofPattern("EEEE")
+    val date = LocalDateTime.parse(dateString, inputFormatter).toLocalDate()
+    return outputFormatter.format(date)
+}
+
+
+@Composable
+fun SectionTitle(title: String) {
+    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Text(
+            text = title,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = FontFamily.Monospace,
+            color = Color.White,
+            modifier = Modifier.padding(vertical = 8.dp)
+        )
+    }
+}
+
 
 @Composable
 fun WeatherCard(weatherData: WeatherResponse, currentDate: String) {
@@ -108,7 +143,7 @@ fun WeatherCard(weatherData: WeatherResponse, currentDate: String) {
     ) {
         Text(
             text = "${weatherData.weather?.get(0)?.description} in ${weatherData.name}",
-            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+            fontFamily = FontFamily.Monospace,
 
             fontSize = 24.sp,
             color = Color.White,
@@ -124,7 +159,7 @@ fun WeatherCard(weatherData: WeatherResponse, currentDate: String) {
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = currentDate,
-            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+            fontFamily = FontFamily.Monospace,
 
             fontSize = 16.sp,
             color = Color.White.copy(alpha = 0.8f),
@@ -133,7 +168,7 @@ fun WeatherCard(weatherData: WeatherResponse, currentDate: String) {
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "${weatherData.main?.temp}°",
-            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+            fontFamily = FontFamily.Monospace,
             fontSize = 48.sp,
             fontWeight = FontWeight.Bold,
             color = Color.White,
@@ -142,7 +177,7 @@ fun WeatherCard(weatherData: WeatherResponse, currentDate: String) {
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = "H: ${weatherData.main?.temp_max}°  L: ${weatherData.main?.temp_min}°",
-            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+            fontFamily = FontFamily.Monospace,
 
             fontSize = 16.sp,
             color = Color.White.copy(alpha = 0.8f),
@@ -209,14 +244,14 @@ fun WeatherDetailItem(icon: Int, value: String, label: String) {
         )
         Text(
             text = value,
-            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+            fontFamily = FontFamily.Monospace,
             textAlign = TextAlign.Center,
             fontWeight = FontWeight.Bold,
             color = Color.White,
         )
         Text(
             text = label,
-            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+            fontFamily = FontFamily.Monospace,
 
             textAlign = TextAlign.Center,
             fontWeight = FontWeight.Bold,
@@ -267,7 +302,7 @@ fun HourlyItem(model: WeatherResponse) {
             .padding(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-            Text(text = "${formatDateTime(model.dt_txt)}",fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+            Text(text = "${formatDateTime(model.dt_txt)}",fontFamily = FontFamily.Monospace,
                 textAlign = TextAlign.Center, fontSize = 16.sp, color = Color.White)
 
         Image(
@@ -279,27 +314,29 @@ fun HourlyItem(model: WeatherResponse) {
             contentScale = ContentScale.Crop
         )
         //weatherData.main?.temp
-        Text(text = "${model.main?.temp}°",fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+        Text(text = "${model.main?.temp}°",fontFamily = FontFamily.Monospace,
             textAlign = TextAlign.Center, fontSize = 16.sp, color = Color.White)
         }
 
 }
 
-//@Composable
-//fun FutureForecast(forecastData: WeatherForecastResponse) {
-//    LazyRow(
-//        modifier = Modifier.fillMaxWidth(),
-//        contentPadding = PaddingValues(horizontal = 16.dp),
-//        horizontalArrangement = Arrangement.spacedBy(8.dp)
-//    ) {
-//        items(items2) { item ->
-//            FutureItemCard(item)
-//        }
-//    }
-//}
-
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun FutureItemCard(item: FutureModel) {
+fun FutureForecast(forecastData: List<WeatherResponse>) {
+    LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(forecastData) { item ->
+            FutureItemCard(item)
+        }
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun FutureItemCard(item: WeatherResponse) {
 
     Column(
         modifier = Modifier
@@ -308,23 +345,30 @@ fun FutureItemCard(item: FutureModel) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(text = item.day,
+        Text(text = getTheDayOfTheWeek(item.dt_txt),
             fontSize = 14.sp,
-            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+            fontFamily = FontFamily.Monospace,
             color = Color.White)
         Spacer(modifier = Modifier.height(4.dp))
-//        Image(
-//            painter = painterResource(R)),
-//            contentDescription = null,
-//            modifier = Modifier.size(45.dp)
-//        )
+        Image(
+            painter = painterResource(getDrawableResourceId(item.weather?.get(0)?.main)),
+            contentDescription = null,
+            modifier = Modifier.size(45.dp)
+        )
         Spacer(modifier = Modifier.height(4.dp))
-        Text(text = item.status, fontSize = 14.sp,fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-            color = Color.White)
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(text = "${item.highTemp}°C / ${item.lowTemp}°C", fontSize = 14.sp,
-            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-            color = Color.White)
+        Text(
+            text = buildAnnotatedString {
+                withStyle(style = SpanStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold)) {
+                    append("${item.main?.temp_max}°C ")
+                }
+                withStyle(style = SpanStyle(fontSize = 13.sp, fontWeight = FontWeight.Normal)) {
+                    append("/ ${item.main?.temp_min}°C")
+                }
+            },
+            fontFamily = FontFamily.Monospace,
+            color = Color.White
+        )
+
     }
 
 }

@@ -16,9 +16,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
+@RequiresApi(Build.VERSION_CODES.O)
 class HomeViewModel(private val repo: RepoImpl, private val context: Context, private val locationRepo: LocationRepository) : ViewModel() {
 
     private val _currentDetails = MutableStateFlow<Response<WeatherResponse>>(Response.Loading)
@@ -41,34 +43,85 @@ class HomeViewModel(private val repo: RepoImpl, private val context: Context, pr
     init {
         fetchWeatherForCurrentLocation()
     }
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun fetchWeatherForCurrentLocation() {
         viewModelScope.launch {
             val location = locationRepo.getCurrentLocation(context)
             location?.let {
                 fetchWeatherFromLatLonUnitLang(it.latitude, it.longitude)
                 getFutureWeatherForecast(it.latitude, it.longitude)
+                getFutureDaysWeatherForecast(it.latitude, it.longitude)
             } ?: run {
                 _currentDetails.value = Response.Failure(Exception("Location not available"))
             }
         }
     }
-    private fun getFutureDaysWeatherForecast(latitude: Double, longitude: Double,metric: String = "metric", lang: String = "en") {
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun getFutureDaysWeatherForecast(latitude: Double, longitude: Double, metric: String = "metric", lang: String = "en") {
         viewModelScope.launch(Dispatchers.IO) {
             _futureDays.value = Response.Loading
             try {
                 repo.get5DaysWeatherForecast(latitude, longitude, metric, lang)
                     .collect { response ->
-                        _futureDays.value = Response.Success(response.list)
-                        Log.i("response", response.list.toString())
+                        val currentDateTime = fetchformattedDateTime()
+                        val currentDate = LocalDateTime.parse(currentDateTime, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")).toLocalDate()
+                        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+
+                        val futureForecasts = response.list.filter { forecastItem ->
+                            try {
+                                val forecastDateTime = LocalDateTime.parse(forecastItem.dt_txt, formatter)
+                                forecastDateTime.toLocalDate().isAfter(currentDate)  // Keep only future days
+                            } catch (e: Exception) {
+                                Log.e("ParsingError", "Failed to parse date: ${forecastItem.dt_txt}")
+                                false
+                            }
+                        }
+//                        groupedByDay = {
+//                            "2025-11-10": [
+//                            {"dt_txt": "2025-11-10 00:00:00", "temp": 15},
+//                            {"dt_txt": "2025-11-10 03:00:00", "temp": 16},
+//                            {"dt_txt": "2025-11-10 06:00:00", "temp": 17}
+//                            ],
+//                            "2025-11-11": [
+//                            {"dt_txt": "2025-11-11 00:00:00", "temp": 14},
+//                            {"dt_txt": "2025-11-11 03:00:00", "temp": 15}
+//                            ],
+//                            "2025-11-12": [
+//                            {"dt_txt": "2025-11-12 00:00:00", "temp": 13},
+//                            {"dt_txt": "2025-11-12 03:00:00", "temp": 14}
+//                            ]
+//                        }
+                        val groupedByDay = futureForecasts.groupBy { forecastItem ->
+                            forecastItem.dt_txt?.substring(0, 10) // Extract "yyyy-MM-dd"
+                        }
+
+                        val futureDaysList = groupedByDay.mapNotNull { (_, forecasts) ->
+                            val maxTemp = forecasts.mapNotNull { it.main?.temp_max }.maxOrNull() ?: Double.MIN_VALUE
+                            val minTemp = forecasts.mapNotNull { it.main?.temp_min }.minOrNull() ?: Double.MAX_VALUE
+
+                            val firstForecast = forecasts.firstOrNull() ?: return@mapNotNull null
+                            val firstMain = firstForecast.main ?: return@mapNotNull null
+
+                            // Ensure the copy function exists for ForecastItem
+                            firstForecast.copy(
+                                main = firstMain.copy(
+                                    temp_max = maxTemp,
+                                    temp_min = minTemp
+                                )
+                            )
+                        }
+
+                        _futureDays.value = Response.Success(futureDaysList)
+                        Log.i("response", "futureDaysList: $futureDaysList")
+
                     }
-
-
             } catch (e: Exception) {
                 _futureDays.value = Response.Failure(e)
                 Log.e("WeatherError", e.message.toString())
             }
         }
     }
+
 
 
     private fun getFutureWeatherForecast(latitude: Double, longitude: Double,metric: String = "metric", lang: String = "en") {
@@ -124,6 +177,7 @@ class HomeViewModel(private val repo: RepoImpl, private val context: Context, pr
 
 
 class HomeViewModelFactory(private val repo: RepoImpl,private val context: android.content.Context,private val locationRepo: LocationRepository) : ViewModelProvider.Factory {
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return HomeViewModel(repo,context,locationRepo) as T
     }

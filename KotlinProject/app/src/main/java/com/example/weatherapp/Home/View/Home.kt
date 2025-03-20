@@ -1,6 +1,8 @@
 package com.example.weatherapp.Home.View
 
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -28,38 +30,18 @@ import com.example.weatherapp.Home.ViewModel.HomeViewModel
 import com.example.weatherapp.R
 import com.example.weatherapp.Response
 import com.example.weatherapp.data.models.FutureModel
-import com.example.weatherapp.data.models.HourlyModel
-import com.example.weatherapp.data.models.WeatherForecastResponse
 import com.example.weatherapp.data.models.WeatherResponse
-import com.example.weatherapp.items2
 import com.example.weatherapp.ui.theme.BabyBlue
 import com.example.weatherapp.ui.theme.Blue
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
-//@Composable
-//fun HomeUI(viewModel: WeatherViewModel,navController: NavHostController){
-//    val weatherDetailsState = viewModel.currentDetails.observeAsState()
-//    val messageState = viewModel.message.observeAsState()
-//
-//    viewModel.fetchWeatherFromLatLonUnitLang(30.0444, 31.2357, "metric", "ar")
-//
-//    val snackBarHostState = remember { SnackbarHostState() }
-//    Scaffold(
-//        snackbarHost = { SnackbarHost(snackBarHostState) }
-//    ) { innerPadding ->
-//        Column(modifier = Modifier.padding(innerPadding)) {
-//            Text(text = "Temperature: ${weatherDetailsState.value ?: "Loading..."}")
-//
-//            messageState.value?.let { message ->
-//                Text(text = "Error: $message", color = Color.Red)
-//            }
-//        }
-//    }
-//}
-
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun HomeWeatherScreen(viewModel: HomeViewModel, navController: NavHostController) {
     val uiState = viewModel.currentDetails.collectAsStateWithLifecycle().value
-    val forecastState = viewModel.currentDetailsList.collectAsStateWithLifecycle().value
+    val forecastState = viewModel.nextHoursDetailsList.collectAsStateWithLifecycle().value
+    val currentDate = viewModel.currentDate
 
     Box(
         modifier = Modifier
@@ -75,8 +57,9 @@ fun HomeWeatherScreen(viewModel: HomeViewModel, navController: NavHostController
                 is Response.Loading -> LoadingIndicator()
                 is Response.Success -> {
                     val weatherData = uiState.data
-                    WeatherCard(weatherData)
+                    WeatherCard(weatherData,currentDate)
                     WeatherDetails(weatherData)
+
                 //    HourlyForecast(com.example.weatherapp.items)
 
                 }
@@ -90,16 +73,18 @@ fun HomeWeatherScreen(viewModel: HomeViewModel, navController: NavHostController
                 is Response.Success -> {
                     val forecastData = forecastState.data
                     Text(
-                        text = "Next 5 Days",
+                        text = "Next Hours",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                         color = Color.White,
                         modifier = Modifier.padding(vertical = 8.dp)
                         .align(Alignment.CenterHorizontally)
 
                     )
+                    Log.i("response", "${forecastState.data}")
 
-                    FutureForecast(forecastData)
+                   //FutureForecast(forecastData)
                     HourlyForecast(forecastData)
                 }
                 is Response.Failure -> {
@@ -111,25 +96,20 @@ fun HomeWeatherScreen(viewModel: HomeViewModel, navController: NavHostController
 }
 
 @Composable
-fun WeatherCard(weatherData: WeatherResponse) {
-    val weatherIcon = when (weatherData.weather?.get(0)?.main) {
-        "Clear" -> R.drawable.sunny
-        "Clouds" -> R.drawable.cloudy
-        "Rain" -> R.drawable.rainy
-        "Snow" -> R.drawable.snowy
-        else -> R.drawable.sunny
-    }
+fun WeatherCard(weatherData: WeatherResponse, currentDate: String) {
+
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
-
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Text(
             text = "${weatherData.weather?.get(0)?.description} in ${weatherData.name}",
+            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+
             fontSize = 24.sp,
             color = Color.White,
             fontWeight = FontWeight.Bold,
@@ -137,20 +117,23 @@ fun WeatherCard(weatherData: WeatherResponse) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         Image(
-            painter = painterResource(id = weatherIcon),
+            painter = painterResource(id = getDrawableResourceId(weatherData.weather?.get(0)?.main)),
             contentDescription = null,
             modifier = Modifier.size(120.dp)
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "${weatherData.dt_txt}",
+            text = currentDate,
+            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+
             fontSize = 16.sp,
             color = Color.White.copy(alpha = 0.8f),
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "${weatherData.main?.temp}",
+            text = "${weatherData.main?.temp}°",
+            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
             fontSize = 48.sp,
             fontWeight = FontWeight.Bold,
             color = Color.White,
@@ -159,6 +142,8 @@ fun WeatherCard(weatherData: WeatherResponse) {
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = "H: ${weatherData.main?.temp_max}°  L: ${weatherData.main?.temp_min}°",
+            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+
             fontSize = 16.sp,
             color = Color.White.copy(alpha = 0.8f),
             textAlign = TextAlign.Center
@@ -178,14 +163,14 @@ fun WeatherDetails(weatherData: WeatherResponse) {
         val weatherDetails = listOf(
             WeatherDetail(R.drawable.humidity, "${weatherData.main?.humidity ?: 0}%", "Humidity"),
             WeatherDetail(R.drawable.wind, "${weatherData.wind?.speed ?: 0} km/h", "Wind"),
-            WeatherDetail(R.drawable.wind, "${weatherData.main?.pressure ?: 0} hPa", "Pressure"),
-            WeatherDetail(R.drawable.humidity, "${weatherData.clouds?.all ?: 0}%", "Clouds"),
-            WeatherDetail(R.drawable.wind, "${weatherData.sys?.sunrise ?: 0}", "Sunrise"),
-            WeatherDetail(R.drawable.humidity, "${weatherData.sys?.sunset ?: 0}", "Sunset")
+            WeatherDetail(R.drawable.pressure, "${weatherData.main?.pressure ?: 0} hPa", "Pressure"),
+            WeatherDetail(R.drawable.clouds, "${weatherData.clouds?.all ?: 0}%", "Clouds"),
+            WeatherDetail(R.drawable.sunrise, "${weatherData.sys?.sunrise ?: 0}", "Sunrise"),
+            WeatherDetail(R.drawable.sunset, "${weatherData.sys?.sunset ?: 0}", "Sunset")
         )
 
         // Group items into pairs (2 per row)
-        weatherDetails.chunked(2).forEach { rowItems ->
+        weatherDetails.chunked(3).forEach { rowItems ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -224,12 +209,15 @@ fun WeatherDetailItem(icon: Int, value: String, label: String) {
         )
         Text(
             text = value,
+            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
             textAlign = TextAlign.Center,
             fontWeight = FontWeight.Bold,
             color = Color.White,
         )
         Text(
             text = label,
+            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+
             textAlign = TextAlign.Center,
             fontWeight = FontWeight.Bold,
             color = Color.White,
@@ -237,59 +225,36 @@ fun WeatherDetailItem(icon: Int, value: String, label: String) {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun HourlyForecast(list: WeatherForecastResponse) {
+fun HourlyForecast(forecastResponse: List<WeatherResponse>) {
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
         contentPadding = PaddingValues(horizontal = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(com.example.weatherapp.items) { item ->
-            FutureModelViewHolder(item)
+        items(forecastResponse) { item ->
+            HourlyItem(item)
         }
+
     }
 }
 
-@Composable
-fun FutureForecast(forecastData: WeatherForecastResponse) {
-    LazyRow(
-        modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(items2) { item ->
-            FutureItemCard(item)
-        }
-    }
-}
+@RequiresApi(Build.VERSION_CODES.O)
+fun formatDateTime(dtTxt: String?) :String? {
+    val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    val outputFormatter = DateTimeFormatter.ofPattern("h:mm a")
 
-@Composable
-fun FutureItemCard(item: FutureModel) {
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(text = item.day, fontSize = 14.sp, color = Color.White)
-        Spacer(modifier = Modifier.height(4.dp))
-        Image(
-            painter = painterResource(id = getDrawableResourceId(item.picPath)),
-            contentDescription = null,
-            modifier = Modifier.size(45.dp)
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(text = item.status, fontSize = 14.sp, color = Color.White)
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(text = "${item.highTemp}°C / ${item.lowTemp}°C", fontSize = 14.sp, color = Color.White)
-    }
+    val dateTime = LocalDateTime.parse(dtTxt, inputFormatter)
+return  dateTime.format(outputFormatter);
 
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun FutureModelViewHolder(model: HourlyModel) {
+fun HourlyItem(model: WeatherResponse) {
+    Log.i("response"," mainnnnnn : ${model.weather?.get(0)?.main}")
+
     Column(
         modifier = Modifier
             .width(90.dp)
@@ -302,28 +267,79 @@ fun FutureModelViewHolder(model: HourlyModel) {
             .padding(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = model.hour, textAlign = TextAlign.Center, fontSize = 16.sp, color = Color.White)
+            Text(text = "${formatDateTime(model.dt_txt)}",fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                textAlign = TextAlign.Center, fontSize = 16.sp, color = Color.White)
+
         Image(
             painter = painterResource(
-                id = getDrawableResourceId(model.picPath)
+                id = getDrawableResourceId(model.weather?.get(0)?.main)
             ),
             contentDescription = null,
             modifier = Modifier.size(45.dp).padding(8.dp),
             contentScale = ContentScale.Crop
         )
-        Text(text = "${model.temp}", textAlign = TextAlign.Center, fontSize = 16.sp, color = Color.White)
-    }
+        //weatherData.main?.temp
+        Text(text = "${model.main?.temp}°",fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+            textAlign = TextAlign.Center, fontSize = 16.sp, color = Color.White)
+        }
+
 }
 
+//@Composable
+//fun FutureForecast(forecastData: WeatherForecastResponse) {
+//    LazyRow(
+//        modifier = Modifier.fillMaxWidth(),
+//        contentPadding = PaddingValues(horizontal = 16.dp),
+//        horizontalArrangement = Arrangement.spacedBy(8.dp)
+//    ) {
+//        items(items2) { item ->
+//            FutureItemCard(item)
+//        }
+//    }
+//}
+
 @Composable
-fun getDrawableResourceId(picPath: String): Int {
+fun FutureItemCard(item: FutureModel) {
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(text = item.day,
+            fontSize = 14.sp,
+            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+            color = Color.White)
+        Spacer(modifier = Modifier.height(4.dp))
+//        Image(
+//            painter = painterResource(R)),
+//            contentDescription = null,
+//            modifier = Modifier.size(45.dp)
+//        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(text = item.status, fontSize = 14.sp,fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+            color = Color.White)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(text = "${item.highTemp}°C / ${item.lowTemp}°C", fontSize = 14.sp,
+            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+            color = Color.White)
+    }
+
+}
+
+
+
+@Composable
+fun getDrawableResourceId(picPath: String?): Int {
     return when (picPath) {
-        "cloudy" -> R.drawable.cloudy
-        "sunny" -> R.drawable.sunny
-        "wind" -> R.drawable.wind
-        "rainy" -> R.drawable.rainy
+        "Clear" -> R.drawable.sunny
+        "Clouds" -> R.drawable.cloudy
+        "Rain" -> R.drawable.rainy
+        "Snow" -> R.drawable.snowy
         "storm" -> R.drawable.storm
-        else -> R.drawable.cloudy
+        else -> R.drawable.back
     }
 }
 

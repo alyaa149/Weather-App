@@ -14,6 +14,8 @@ interface WeatherService {
     ): WeatherResponse
     //https://api.openweathermap.org/data/2.5/weather?q=London&appid=a48ab7f2ea1db8788b4a980035313863&units=metric&lang=ar
 
+
+    //api.openweathermap.org/data/2.5/weather?lat=31.27077&lon=30.007815&appid=a48ab7f2ea1db8788b4a980035313863
     @GET("weather")
     suspend fun getInfoFromLatLonAndUnitAndLang(
         @Query("lat") lat: Double,

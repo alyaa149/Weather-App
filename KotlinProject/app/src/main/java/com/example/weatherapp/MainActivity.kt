@@ -85,24 +85,24 @@ import android.net.Uri
 import androidx.compose.ui.platform.LocalContext
 import com.example.weatherapp.Utils.Location.LocationRepository
 
-
-val items = listOf(
-    HourlyModel("9 pm", 25, "cloudy"),
-    HourlyModel("10 pm", 25, "sunny"),
-    HourlyModel("11 pm", 25, "wind"),
-    HourlyModel("10 pm", 25, "raniy"),
-    HourlyModel("10 pm", 25, "stom"),
-)
-val items2 = listOf(
-FutureModel("Sat", "cloudy", "Mostly Cloudy", 25, 18)
-    ,FutureModel("Sun", "cloudy", "Mostly Cloudy", 25, 18)
-    ,FutureModel("Mon", "cloudy", "Mostly Cloudy", 25, 18)
-    ,FutureModel("Tue", "cloudy", "Mostly Cloudy", 25, 18)
-    ,FutureModel("Wen", "cloudy", "Mostly Cloudy", 25, 18)
-    ,FutureModel("Thu", "cloudy", "Mostly Cloudy", 25, 18)
-
-)
-
+//
+//val items = listOf(
+//    HourlyModel("9 pm", 25, "cloudy"),
+//    HourlyModel("10 pm", 25, "sunny"),
+//    HourlyModel("11 pm", 25, "wind"),
+//    HourlyModel("10 pm", 25, "raniy"),
+//    HourlyModel("10 pm", 25, "stom"),
+//)
+//val items2 = listOf(
+//FutureModel("Sat", "cloudy", "Mostly Cloudy", 25, 18)
+//    ,FutureModel("Sun", "cloudy", "Mostly Cloudy", 25, 18)
+//    ,FutureModel("Mon", "cloudy", "Mostly Cloudy", 25, 18)
+//    ,FutureModel("Tue", "cloudy", "Mostly Cloudy", 25, 18)
+//    ,FutureModel("Wen", "cloudy", "Mostly Cloudy", 25, 18)
+//    ,FutureModel("Thu", "cloudy", "Mostly Cloudy", 25, 18)
+//
+//)
+//
 
 
 class MainActivity : ComponentActivity() {

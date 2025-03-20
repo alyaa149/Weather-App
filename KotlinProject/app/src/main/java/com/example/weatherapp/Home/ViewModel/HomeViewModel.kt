@@ -98,11 +98,9 @@ class HomeViewModel(private val repo: RepoImpl, private val context: Context, pr
                         val futureDaysList = groupedByDay.mapNotNull { (_, forecasts) ->
                             val maxTemp = forecasts.mapNotNull { it.main?.temp_max }.maxOrNull() ?: Double.MIN_VALUE
                             val minTemp = forecasts.mapNotNull { it.main?.temp_min }.minOrNull() ?: Double.MAX_VALUE
-
                             val firstForecast = forecasts.firstOrNull() ?: return@mapNotNull null
                             val firstMain = firstForecast.main ?: return@mapNotNull null
 
-                            // Ensure the copy function exists for ForecastItem
                             firstForecast.copy(
                                 main = firstMain.copy(
                                     temp_max = maxTemp,

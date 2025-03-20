@@ -82,6 +82,15 @@ import androidx.compose.ui.unit.dp
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import android.net.Uri
+import android.os.Build
+import androidx.annotation.RequiresApi
+import androidx.compose.foundation.pager.PageSize
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.platform.LocalContext
 import com.example.weatherapp.Utils.Location.LocationRepository
 
@@ -116,6 +125,7 @@ class MainActivity : ComponentActivity() {
 
     public lateinit var locationState: MutableState<Location>
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -218,30 +228,30 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun CurvedBottomNavigationBar(navController: NavController) {
-    val selected = remember { mutableStateOf(Icons.Default.Home) }
+    val selectedItem = remember { mutableStateOf(Icons.Default.Home) }
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(80.dp) // Adjust height as needed
+            .height(85.dp)
             .background(Color.Transparent),
         contentAlignment = Alignment.BottomCenter
     ) {
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(80.dp) // This creates the curved background
+                .height(85.dp)
         ) {
             val path = Path().apply {
                 moveTo(0f, 0f)
                 lineTo(size.width * 0.35f, 0f)
                 cubicTo(
                     size.width * 0.42f, 0f,
-                    size.width * 0.45f, size.height * 0.6f,
-                    size.width * 0.5f, size.height * 0.6f
+                    size.width * 0.45f, size.height * 0.55f,
+                    size.width * 0.5f, size.height * 0.55f
                 )
                 cubicTo(
-                    size.width * 0.55f, size.height * 0.6f,
+                    size.width * 0.55f, size.height * 0.55f,
                     size.width * 0.58f, 0f,
                     size.width * 0.65f, 0f
                 )
@@ -250,44 +260,68 @@ fun CurvedBottomNavigationBar(navController: NavController) {
                 lineTo(0f, size.height)
                 close()
             }
-            drawPath(path, color = Color.Cyan)
+            drawPath(path, color = Color.White, style = Fill)
         }
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp)
                 .height(80.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.Bottom
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             BottomNavItem(
                 icon = Icons.Default.Home,
                 label = "Home",
-                isSelected = selected.value == Icons.Default.Home,
+                isSelected = selectedItem.value == Icons.Default.Home,
                 onClick = {
-                    selected.value = Icons.Default.Home
+                    selectedItem.value = Icons.Default.Home
                     navController.navigate(ScreenRoutes.HomeScreen) { popUpTo(0) }
                 }
             )
+
             BottomNavItem(
                 icon = Icons.Default.Favorite,
                 label = "Favorites",
-                isSelected = selected.value == Icons.Default.Favorite,
+                isSelected = selectedItem.value == Icons.Default.Favorite,
                 onClick = {
-                    selected.value = Icons.Default.Favorite
+                    selectedItem.value = Icons.Default.Favorite
                     navController.navigate(ScreenRoutes.FavLocScreen) { popUpTo(0) }
                 }
             )
+
+            Spacer(Modifier.width(56.dp)) // Space for the Floating Button
+
             BottomNavItem(
                 icon = Icons.Default.Settings,
                 label = "Settings",
-                isSelected = selected.value == Icons.Default.Settings,
+                isSelected = selectedItem.value == Icons.Default.Settings,
                 onClick = {
-                    selected.value = Icons.Default.Settings
+                    selectedItem.value = Icons.Default.Settings
                     navController.navigate(ScreenRoutes.SettingsScreen) { popUpTo(0) }
                 }
             )
+
+            BottomNavItem(
+                icon = Icons.Default.Person,
+                label = "Profile",
+                isSelected = selectedItem.value == Icons.Default.Person,
+                onClick = {
+                    selectedItem.value = Icons.Default.Person
+                }
+            )
+        }
+
+        FloatingActionButton(
+            onClick = { /* Handle FAB click */ },
+            contentColor = Color.White,
+            modifier = Modifier
+                .size(65.dp)
+                .align(Alignment.TopCenter)
+                .shadow(8.dp, shape = CircleShape)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "Add")
         }
     }
 }
@@ -297,31 +331,33 @@ fun BottomNavItem(icon: ImageVector, label: String, isSelected: Boolean, onClick
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
-        modifier = Modifier.clickable { onClick() }
+        modifier = Modifier
+            .clickable { onClick() }
+            .padding(8.dp)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = label,
-            modifier = Modifier.size(if (isSelected) 32.dp else 26.dp),
-            tint = if (isSelected) Color.White else Color.Gray
+            modifier = Modifier.size(if (isSelected) 30.dp else 24.dp),
+            tint = if (isSelected) Blue else BabyBlue
         )
         Text(
             text = label,
-            color = if (isSelected) Color.White else Color.Gray,
+            color = if (isSelected) Blue else BabyBlue,
             fontSize = 12.sp
         )
     }
 }
+
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppNavigation(viewModel: Any) {
     val navController = rememberNavController()
     Scaffold(
-//        bottomBar = {
-//
-//            CurvedBottomNavigationBar(navController)
-//        }
+        bottomBar = {
+            CurvedBottomNavigationBar(navController)
+        }
     ) { paddingValues ->
-        SetUpNavHost(viewModel, navController, paddingValues)
+        SetUpNavHost(navController, paddingValues)
     }
-
 }

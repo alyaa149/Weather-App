@@ -324,7 +324,7 @@ fun HourlyItem(model: WeatherResponse) {
 @Composable
 fun FutureForecast(forecastData: List<WeatherResponse>) {
     LazyRow(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(bottom = 60.dp),
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {

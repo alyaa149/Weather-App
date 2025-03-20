@@ -1,21 +1,11 @@
 package com.example.weatherapp.Favorites.View
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavHostController
-import com.example.weatherapp.WeatherViewModel
+import com.example.weatherapp.Favorites.ViewModel.FavViewModel
 
 @Composable
-fun FavLocUI(viewModel: WeatherViewModel, navController: NavHostController) {
+fun FavLocUI(viewModel: FavViewModel, navController: NavHostController) {
 //    // Observe LiveData as State
 //    val weatherDetailsState = viewModel.currentDetailsList.observeAsState()
 //    val messageState = viewModel.message.observeAsState()

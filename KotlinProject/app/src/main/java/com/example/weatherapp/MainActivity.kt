@@ -75,9 +75,6 @@ class MainActivity : ComponentActivity() {
     public val fusedLocationClient by lazy {
         LocationServices.getFusedLocationProviderClient(this)
     }
-//private lateinit var fusedLocationClient: FusedLocationProviderClient
-
-
     public lateinit var locationState: MutableState<android.location.Location>
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -96,8 +93,7 @@ class MainActivity : ComponentActivity() {
                             RemoteDataSourceImpl(RetrofitHelper.service),
                             LocalDataSourceImpl()
                         ),
-                        LocalContext.current,
-                        com.example.weatherapp.Utils.Location.Location(fusedLocationClient)
+                        com.example.weatherapp.Utils.Location.Location()
 
                     )
                 )

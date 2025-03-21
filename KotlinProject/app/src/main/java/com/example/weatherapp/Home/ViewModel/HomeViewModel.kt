@@ -173,7 +173,7 @@ class HomeViewModel(private val repo: RepoImpl, private val locationRepo: Locati
 }
 
 
-class HomeViewModelFactory(private val repo: RepoImpl,private val context: android.content.Context,private val locationRepo: Location) : ViewModelProvider.Factory {
+class HomeViewModelFactory(private val repo: RepoImpl,private val locationRepo: Location) : ViewModelProvider.Factory {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return HomeViewModel(repo,locationRepo) as T

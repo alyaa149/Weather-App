@@ -33,7 +33,6 @@ import com.google.android.gms.location.LocationServices
 @Composable
 fun SetUpNavHost(navController: NavHostController, paddingValues: PaddingValues) {
     val context = LocalContext.current
-    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     NavHost(
         navController = navController,
         startDestination = ScreenRoutes.HomeScreen,
@@ -48,8 +47,7 @@ fun SetUpNavHost(navController: NavHostController, paddingValues: PaddingValues)
                             RemoteDataSourceImpl(RetrofitHelper.service),
                             LocalDataSourceImpl()
                         ),
-                        context,
-                        Location(fusedLocationClient)
+                        Location()
                     )
                 }
             )
@@ -72,7 +70,7 @@ fun SetUpNavHost(navController: NavHostController, paddingValues: PaddingValues)
 
         composable<ScreenRoutes.SettingsScreen> {
             val settingsViewModel: SettingsViewModel = viewModel()
-            SettingsUI(settingsViewModel, navController,fusedLocationClient)
+            SettingsUI(settingsViewModel, navController)
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.example.weatherapp.Settings.View
 
+import android.util.Log
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -65,7 +66,6 @@ fun GreetingPreview() {
 fun SettingsUI(
     viewModel: SettingsViewModel,
     navController: NavHostController,
-    fusedLocationProviderClient: FusedLocationProviderClient
 ) {
     val weatherPreferences = remember { WeatherSharedPrefrences() }
 
@@ -73,20 +73,24 @@ fun SettingsUI(
     var selectedLocationLon by remember { mutableStateOf(weatherPreferences.getData(AppStrings().LONGITUDEKEY) ?: "") }
     var selectedLocationLat by remember { mutableStateOf(weatherPreferences.getData(AppStrings().LATITUDEKEY) ?: "") }
 
+
     var selectedTempUnit by remember { mutableStateOf(weatherPreferences.getData(AppStrings().TEMPUNITKEY) ?: "Celsius") }
     var selectedWindUnit by remember { mutableStateOf(weatherPreferences.getData(AppStrings().WINDUNITKEY) ?: "meter/second") }
     var selectedLanguage by remember { mutableStateOf(weatherPreferences.getData(AppStrings().LANGUAGEKEY) ?: "English") }
-
-    val context = LocalContext.current
+    Log.d("SettingsUI", "Selected Location: $selectedLocation")
+    Log.d("SettingsUI", "Selected Temp Unit: $selectedTempUnit")
+    Log.d("SettingsUI", "Selected Wind Unit: $selectedWindUnit")
+    Log.d("SettingsUI", "Selected Language: $selectedLanguage")
 
     suspend fun updateLocation() {
-        val location = Location(fusedLocationProviderClient).getCurrentLocation()
+        val location = Location().getCurrentLocation()
         location?.let {
             selectedLocationLat = it.latitude.toString()
             selectedLocationLon = it.longitude.toString()
 
             weatherPreferences.putData(AppStrings().LATITUDEKEY, selectedLocationLat)
             weatherPreferences.putData(AppStrings().LONGITUDEKEY, selectedLocationLon)
+            Log.d("SettingsUI", "Updated Location: $selectedLocationLat, $selectedLocationLon")
         }
     }
 
@@ -191,7 +195,7 @@ fun SettingSection(title: String,picPath:Int ,content: @Composable () -> Unit) {
                 modifier = Modifier.size(24.dp)
             )
             Spacer(modifier = Modifier.width(10.dp))
-            Text(text = title, fontWeight = FontWeight.Bold, fontSize = 18.sp,            fontFamily = FontFamily.Monospace,
+            Text(text = title, fontWeight = FontWeight.Bold, fontSize = 18.sp,fontFamily = FontFamily.Monospace,
                 color = Blue,)
         }
 

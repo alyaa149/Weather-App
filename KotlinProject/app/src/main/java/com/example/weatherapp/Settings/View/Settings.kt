@@ -45,26 +45,50 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.weatherapp.R
 import com.example.weatherapp.Settings.ViewModel.SettingsViewModel
+import com.example.weatherapp.Utils.constants.AppStrings
+import com.example.weatherapp.Utils.Location.Location
+import com.example.weatherapp.Utils.sharedprefrences.WeatherSharedPrefrences
 import com.example.weatherapp.ui.theme.BabyBlue
 import com.example.weatherapp.ui.theme.Blue
+import com.google.android.gms.location.FusedLocationProviderClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @Preview(showBackground = true)
 @Composable
 fun GreetingPreview() {
-    SettingsUI(viewModel = SettingsViewModel(), navController = NavHostController(context = LocalContext.current))
-
+    //SettingsUI(viewModel = SettingsViewModel(), navController = NavHostController(context = LocalContext.current))
 }
 
 @Composable
 fun SettingsUI(
     viewModel: SettingsViewModel,
-    navController: NavHostController
+    navController: NavHostController,
+    fusedLocationProviderClient: FusedLocationProviderClient
 ) {
-    var selectedLocation by remember { mutableStateOf("GPS") }
-    var selectedTempUnit by remember { mutableStateOf("Celsius") }
-    var selectedWindUnit by remember { mutableStateOf("meter/second") }
-    var selectedLanguage by remember { mutableStateOf("English") }
+    val weatherPreferences = remember { WeatherSharedPrefrences() }
 
+    var selectedLocation by remember { mutableStateOf(weatherPreferences.getData(AppStrings().LOCATIONKEY) ?: "GPS") }
+    var selectedLocationLon by remember { mutableStateOf(weatherPreferences.getData(AppStrings().LONGITUDEKEY) ?: "") }
+    var selectedLocationLat by remember { mutableStateOf(weatherPreferences.getData(AppStrings().LATITUDEKEY) ?: "") }
+
+    var selectedTempUnit by remember { mutableStateOf(weatherPreferences.getData(AppStrings().TEMPUNITKEY) ?: "Celsius") }
+    var selectedWindUnit by remember { mutableStateOf(weatherPreferences.getData(AppStrings().WINDUNITKEY) ?: "meter/second") }
+    var selectedLanguage by remember { mutableStateOf(weatherPreferences.getData(AppStrings().LANGUAGEKEY) ?: "English") }
+
+    val context = LocalContext.current
+
+    suspend fun updateLocation() {
+        val location = Location(fusedLocationProviderClient).getCurrentLocation()
+        location?.let {
+            selectedLocationLat = it.latitude.toString()
+            selectedLocationLon = it.longitude.toString()
+
+            weatherPreferences.putData(AppStrings().LATITUDEKEY, selectedLocationLat)
+            weatherPreferences.putData(AppStrings().LONGITUDEKEY, selectedLocationLon)
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -75,9 +99,7 @@ fun SettingsUI(
                 )
             )
             .padding(16.dp)
-
     ) {
-
         Text(
             text = "Settings",
             fontSize = 24.sp,
@@ -88,41 +110,74 @@ fun SettingsUI(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
+        // Location Selection
         SettingSection(title = "Choose Location", picPath = R.drawable.location) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(
                     selected = selectedLocation == "GPS",
-                    onClick = { selectedLocation = "GPS" }
+                    onClick = {
+                        selectedLocation = "GPS"
+                        weatherPreferences.putData(AppStrings().LOCATIONKEY, "GPS")
+                        CoroutineScope(Dispatchers.Main).launch {
+                            updateLocation()
+                        }
+                    }
                 )
-                Text("Use GPS"
-,            fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                )
+                Text("Use GPS", fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, color = Color.White)
                 Spacer(modifier = Modifier.width(16.dp))
                 RadioButton(
                     selected = selectedLocation == "Map",
-                    onClick = { }
+                    onClick = {
+                        selectedLocation = "Map"
+                        weatherPreferences.putData(AppStrings().LOCATIONKEY, "Map")
+                        // You can implement map selection logic here
+                    }
                 )
-                Text("Choose from Map",            fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,)
+                Text("Choose from Map", fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, color = Color.White)
             }
         }
 
-        SettingDropdown(title = "Temperature Unit",picPath= R.drawable.tempunit, items = listOf("Kelvin", "Celsius", "Fahrenheit"), selectedItem = selectedTempUnit) {
+        // Display stored latitude and longitude
+        Text(text = "Latitude: $selectedLocationLat", color = Color.White, fontSize = 16.sp)
+        Text(text = "Longitude: $selectedLocationLon", color = Color.White, fontSize = 16.sp)
+
+        // Temperature Unit
+        SettingDropdown(
+            title = "Temperature Unit",
+            picPath = R.drawable.tempunit,
+            items = listOf("Kelvin", "Celsius", "Fahrenheit"),
+            selectedItem = selectedTempUnit
+        ) {
             selectedTempUnit = it
+            weatherPreferences.putData(AppStrings().TEMPUNITKEY, it)
         }
 
-        SettingDropdown(title = "Wind Speed Unit", picPath = R.drawable.windsettings, items = listOf("meter/second", "mile /hour"), selectedItem = selectedWindUnit) {
+        // Wind Speed Unit
+        SettingDropdown(
+            title = "Wind Speed Unit",
+            picPath = R.drawable.windsettings,
+            items = listOf("meter/second", "mile /hour"),
+            selectedItem = selectedWindUnit
+        ) {
             selectedWindUnit = it
+            weatherPreferences.putData(AppStrings().WINDUNITKEY, it)
         }
 
-        SettingDropdown(title = "Language",picPath = R.drawable.language, items = listOf("English", "Arabic"), selectedItem = selectedLanguage) {
+        // Language
+        SettingDropdown(
+            title = "Language",
+            picPath = R.drawable.language,
+            items = listOf("English", "Arabic"),
+            selectedItem = selectedLanguage
+        ) {
             selectedLanguage = it
+            weatherPreferences.putData(AppStrings().LANGUAGEKEY, it)
         }
     }
 }
+
+
+
 //common
 @Composable
 fun SettingSection(title: String,picPath:Int ,content: @Composable () -> Unit) {
@@ -195,7 +250,6 @@ fun SettingDropdown(
                                 text = item,
                                 fontFamily = FontFamily.Monospace,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White,
                             ) },
                         onClick = {
                             onItemSelected(item)

@@ -8,7 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.weatherapp.Response
-import com.example.weatherapp.Utils.Location.LocationRepository
+import com.example.weatherapp.Utils.Location.Location
 import com.example.weatherapp.data.models.WeatherResponse
 import com.example.weatherapp.data.repo.RepoImpl
 import kotlinx.coroutines.Dispatchers
@@ -16,12 +16,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 @RequiresApi(Build.VERSION_CODES.O)
-class HomeViewModel(private val repo: RepoImpl, private val context: Context, private val locationRepo: LocationRepository) : ViewModel() {
+class HomeViewModel(private val repo: RepoImpl, private val locationRepo: Location) : ViewModel() {
 
     private val _currentDetails = MutableStateFlow<Response<WeatherResponse>>(Response.Loading)
     val currentDetails: StateFlow<Response<WeatherResponse>> = _currentDetails
@@ -46,7 +45,7 @@ class HomeViewModel(private val repo: RepoImpl, private val context: Context, pr
     @RequiresApi(Build.VERSION_CODES.O)
     private fun fetchWeatherForCurrentLocation() {
         viewModelScope.launch {
-            val location = locationRepo.getCurrentLocation(context)
+            val location = locationRepo.getCurrentLocation()
             location?.let {
                 fetchWeatherFromLatLonUnitLang(it.latitude, it.longitude)
                 getFutureWeatherForecast(it.latitude, it.longitude)
@@ -131,7 +130,7 @@ class HomeViewModel(private val repo: RepoImpl, private val context: Context, pr
 
                         _nextHoursDetailsList.value = Response.Success(response.list)
                         Log.i("response", response.list.toString())
-                        }
+                    }
             } catch (e: Exception) {
                 _nextHoursDetailsList.value = Response.Failure(e)
                 Log.e("WeatherError", e.message.toString())
@@ -156,27 +155,29 @@ class HomeViewModel(private val repo: RepoImpl, private val context: Context, pr
     }
 
 
-        @RequiresApi(Build.VERSION_CODES.O)
-        fun fetchCurrentTime(): String {
-            val currentDateTime = LocalDateTime.now()
-            val formattedDateTime = currentDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-            val currentDay: DayOfWeek = currentDateTime.dayOfWeek
-            val dayName = currentDay.name.lowercase().replaceFirstChar { it.uppercase() }
-            return "$dayName, $formattedDateTime"
-        }
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun fetchCurrentTime(): String {
+        val currentDateTime = LocalDateTime.now()
+        val formattedDateTime = currentDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+        val currentDay: DayOfWeek = currentDateTime.dayOfWeek
+        val dayName = currentDay.name.lowercase().replaceFirstChar { it.uppercase() }
+        return "$dayName, $formattedDateTime"
+    }
     @RequiresApi(Build.VERSION_CODES.O)
     fun fetchformattedDateTime() : String{
         val currentDateTime = LocalDateTime.now()
         val formattedDateTime = currentDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-       return formattedDateTime
+        return formattedDateTime
 
-    }
-    }
-
-
-class HomeViewModelFactory(private val repo: RepoImpl,private val context: android.content.Context,private val locationRepo: LocationRepository) : ViewModelProvider.Factory {
-    @RequiresApi(Build.VERSION_CODES.O)
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return HomeViewModel(repo,context,locationRepo) as T
     }
 }
+
+
+class HomeViewModelFactory(private val repo: RepoImpl,private val context: android.content.Context,private val locationRepo: Location) : ViewModelProvider.Factory {
+    @RequiresApi(Build.VERSION_CODES.O)
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        return HomeViewModel(repo,locationRepo) as T
+    }
+}
+
+

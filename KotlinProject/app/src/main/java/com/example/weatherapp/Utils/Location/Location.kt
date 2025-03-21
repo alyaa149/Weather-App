@@ -5,14 +5,16 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
 import androidx.core.app.ActivityCompat
+import com.example.weatherapp.Utils.AppContext
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.tasks.Tasks
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class LocationRepository(private val fusedLocationProviderClient: FusedLocationProviderClient) {
+class Location(private val fusedLocationProviderClient: FusedLocationProviderClient) {
 
-    suspend fun getCurrentLocation(context: Context): Location? {
+    suspend fun getCurrentLocation(): Location? {
+        val context = AppContext.getContext()
         return withContext(Dispatchers.IO) {
             if (ActivityCompat.checkSelfPermission(
                     context,

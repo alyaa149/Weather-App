@@ -20,7 +20,7 @@ import com.example.weatherapp.Home.ViewModel.HomeViewModel
 import com.example.weatherapp.Home.ViewModel.HomeViewModelFactory
 import com.example.weatherapp.Settings.View.SettingsUI
 import com.example.weatherapp.Settings.ViewModel.SettingsViewModel
-import com.example.weatherapp.Utils.Location.LocationRepository
+import com.example.weatherapp.Utils.Location.Location
 import com.example.weatherapp.data.local.LocalDataSourceImpl
 import com.example.weatherapp.data.remote.RemoteDataSourceImpl
 import com.example.weatherapp.data.remote.RetrofitHelper
@@ -49,7 +49,7 @@ fun SetUpNavHost(navController: NavHostController, paddingValues: PaddingValues)
                             LocalDataSourceImpl()
                         ),
                         context,
-                        LocationRepository(fusedLocationClient)
+                        Location(fusedLocationClient)
                     )
                 }
             )
@@ -72,7 +72,7 @@ fun SetUpNavHost(navController: NavHostController, paddingValues: PaddingValues)
 
         composable<ScreenRoutes.SettingsScreen> {
             val settingsViewModel: SettingsViewModel = viewModel()
-            SettingsUI(settingsViewModel, navController)
+            SettingsUI(settingsViewModel, navController,fusedLocationClient)
         }
     }
 }

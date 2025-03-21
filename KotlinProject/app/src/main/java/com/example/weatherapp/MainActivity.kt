@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.location.Geocoder
 import android.location.Location
 import android.location.LocationManager
 import android.os.Bundle
@@ -14,24 +13,18 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
@@ -44,75 +37,37 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.weatherapp.data.local.LocalDataSourceImpl
-import com.example.weatherapp.data.models.HourlyModel
 import com.example.weatherapp.data.remote.RemoteDataSourceImpl
 import com.example.weatherapp.data.remote.RetrofitHelper
 import com.example.weatherapp.data.repo.RepoImpl
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.MutableState
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.core.app.ActivityCompat
 import com.example.weatherapp.Home.ViewModel.HomeViewModelFactory
-import com.example.weatherapp.data.models.FutureModel
 import com.example.weatherapp.navigation.ScreenRoutes
 import com.example.weatherapp.navigation.SetUpNavHost
 import com.example.weatherapp.ui.theme.BabyBlue
 import com.example.weatherapp.ui.theme.Blue
-import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.unit.dp
-import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
-import android.net.Uri
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.platform.LocalContext
-import com.example.weatherapp.Utils.Location.LocationRepository
-
-//
-//val items = listOf(
-//    HourlyModel("9 pm", 25, "cloudy"),
-//    HourlyModel("10 pm", 25, "sunny"),
-//    HourlyModel("11 pm", 25, "wind"),
-//    HourlyModel("10 pm", 25, "raniy"),
-//    HourlyModel("10 pm", 25, "stom"),
-//)
-//val items2 = listOf(
-//FutureModel("Sat", "cloudy", "Mostly Cloudy", 25, 18)
-//    ,FutureModel("Sun", "cloudy", "Mostly Cloudy", 25, 18)
-//    ,FutureModel("Mon", "cloudy", "Mostly Cloudy", 25, 18)
-//    ,FutureModel("Tue", "cloudy", "Mostly Cloudy", 25, 18)
-//    ,FutureModel("Wen", "cloudy", "Mostly Cloudy", 25, 18)
-//    ,FutureModel("Thu", "cloudy", "Mostly Cloudy", 25, 18)
-//
-//)
-//
-
 
 class MainActivity : ComponentActivity() {
     public val REQUEST_LOCATION_CODE = 2005
@@ -123,14 +78,17 @@ class MainActivity : ComponentActivity() {
 //private lateinit var fusedLocationClient: FusedLocationProviderClient
 
 
-    public lateinit var locationState: MutableState<Location>
-
+    public lateinit var locationState: MutableState<android.location.Location>
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            locationState = remember { mutableStateOf(Location(LocationManager.GPS_PROVIDER)) }
+            locationState = remember { mutableStateOf(
+                Location(
+                    LocationManager.GPS_PROVIDER
+                )
+            ) }
             AppNavigation(
                 viewModel(
                     factory = HomeViewModelFactory(
@@ -139,7 +97,7 @@ class MainActivity : ComponentActivity() {
                             LocalDataSourceImpl()
                         ),
                         LocalContext.current,
-                        LocationRepository(fusedLocationClient)
+                        com.example.weatherapp.Utils.Location.Location(fusedLocationClient)
 
                     )
                 )
@@ -215,7 +173,7 @@ class MainActivity : ComponentActivity() {
         ) {
             return
         }
-        fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
+        fusedLocationClient.lastLocation.addOnSuccessListener { location: android.location.Location? ->
             location?.let {
                 locationState.value = it
             } ?: run {

@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -137,6 +138,7 @@ fun WeatherCard(weatherData: WeatherResponse, currentDate: String) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(top=50.dp)
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -204,7 +206,6 @@ fun WeatherDetails(weatherData: WeatherResponse) {
             WeatherDetail(R.drawable.sunset, "${weatherData.sys?.sunset ?: 0}", "Sunset")
         )
 
-        // Group items into pairs (2 per row)
         weatherDetails.chunked(3).forEach { rowItems ->
             Row(
                 modifier = Modifier
@@ -264,9 +265,11 @@ fun WeatherDetailItem(icon: Int, value: String, label: String) {
 @Composable
 fun HourlyForecast(forecastResponse: List<WeatherResponse>) {
     LazyRow(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth()
+        ,
         contentPadding = PaddingValues(horizontal = 20.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+
     ) {
         items(forecastResponse) { item ->
             HourlyItem(item)
@@ -295,6 +298,7 @@ fun HourlyItem(model: WeatherResponse) {
             .width(90.dp)
             .wrapContentHeight()
             .padding(4.dp)
+            .shadow(8.dp)
             .background(
                 color = Blue.copy(alpha = 0.8f),
                 shape = RoundedCornerShape(10.dp)

@@ -233,7 +233,8 @@ fun CurvedBottomNavigationBar(navController: NavController) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(85.dp)
+            .height(100.dp)
+            .offset(y = (-30).dp)
             .background(Color.Transparent),
         contentAlignment = Alignment.BottomCenter
     ) {
@@ -241,6 +242,7 @@ fun CurvedBottomNavigationBar(navController: NavController) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(85.dp)
+
         ) {
             val path = Path().apply {
                 moveTo(0f, 0f)
@@ -315,13 +317,14 @@ fun CurvedBottomNavigationBar(navController: NavController) {
 
         FloatingActionButton(
             onClick = { /* Handle FAB click */ },
-            contentColor = Color.White,
+            contentColor = BabyBlue,
             modifier = Modifier
                 .size(65.dp)
                 .align(Alignment.TopCenter)
                 .shadow(8.dp, shape = CircleShape)
+
         ) {
-            Icon(Icons.Default.Add, contentDescription = "Add")
+            Icon(Icons.Default.Notifications, contentDescription = "Add")
         }
     }
 }

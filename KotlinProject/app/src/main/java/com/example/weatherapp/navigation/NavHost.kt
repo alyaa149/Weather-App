@@ -18,6 +18,7 @@ import com.example.weatherapp.Favorites.ViewModel.FavViewModelFactory
 import com.example.weatherapp.Home.View.HomeWeatherScreen
 import com.example.weatherapp.Home.ViewModel.HomeViewModel
 import com.example.weatherapp.Home.ViewModel.HomeViewModelFactory
+import com.example.weatherapp.Settings.View.MapScreen
 import com.example.weatherapp.Settings.View.SettingsUI
 import com.example.weatherapp.Settings.ViewModel.SettingsViewModel
 import com.example.weatherapp.Utils.Location.Location
@@ -47,11 +48,10 @@ fun SetUpNavHost(navController: NavHostController, paddingValues: PaddingValues)
                             RemoteDataSourceImpl(RetrofitHelper.service),
                             LocalDataSourceImpl()
                         ),
-                        Location()
                     )
                 }
             )
-            HomeWeatherScreen(homeViewModel, navController)
+            HomeWeatherScreen(homeViewModel)
         }
 
         composable<ScreenRoutes.FavLocScreen> {
@@ -71,6 +71,9 @@ fun SetUpNavHost(navController: NavHostController, paddingValues: PaddingValues)
         composable<ScreenRoutes.SettingsScreen> {
             val settingsViewModel: SettingsViewModel = viewModel()
             SettingsUI(settingsViewModel, navController)
+        }
+        composable("mapScreen") {
+            MapScreen(navController)
         }
     }
 }

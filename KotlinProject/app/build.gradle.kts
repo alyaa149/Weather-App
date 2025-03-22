@@ -72,10 +72,17 @@ dependencies {
     implementation("androidx.room:room-runtime:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose-android:2.8.7")
-    implementation("androidx.navigation:navigation-compose:2.8.8")
+    implementation("androidx.navigation:navigation-compose:2.8.9")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
     implementation ("com.airbnb.android:lottie-compose:6.1.0")
+    //google maps
     implementation("com.google.android.gms:play-services-location:21.3.0")
+    implementation("com.google.maps.android:places-compose:0.1.3")
+    implementation("com.google.android.gms:play-services-maps:19.1.0")
+    implementation("com.google.maps.android:maps-compose:2.11.2")
+
+
+
 
 
 

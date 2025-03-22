@@ -20,7 +20,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 @RequiresApi(Build.VERSION_CODES.O)
-class HomeViewModel(private val repo: RepoImpl, private val locationRepo: Location) : ViewModel() {
+class HomeViewModel(private val repo: RepoImpl) : ViewModel() {
 
     private val _currentDetails = MutableStateFlow<Response<WeatherResponse>>(Response.Loading)
     val currentDetails: StateFlow<Response<WeatherResponse>> = _currentDetails
@@ -40,27 +40,17 @@ class HomeViewModel(private val repo: RepoImpl, private val locationRepo: Locati
     val futureDays: StateFlow<Response<List<WeatherResponse>>> = _futureDays
 
     init {
-        fetchWeatherForCurrentLocation()
+        fetchWeatherFromLatLonUnitLang()
+        getFutureWeatherForecast()
+        getFutureDaysWeatherForecast()
     }
+
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun fetchWeatherForCurrentLocation() {
-        viewModelScope.launch {
-            val location = locationRepo.getCurrentLocation()
-            location?.let {
-                fetchWeatherFromLatLonUnitLang(it.latitude, it.longitude)
-                getFutureWeatherForecast(it.latitude, it.longitude)
-                getFutureDaysWeatherForecast(it.latitude, it.longitude)
-            } ?: run {
-                _currentDetails.value = Response.Failure(Exception("Location not available"))
-            }
-        }
-    }
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun getFutureDaysWeatherForecast(latitude: Double, longitude: Double, metric: String = "metric", lang: String = "en") {
+    private fun getFutureDaysWeatherForecast() {
         viewModelScope.launch(Dispatchers.IO) {
             _futureDays.value = Response.Loading
             try {
-                repo.get5DaysWeatherForecast(latitude, longitude, metric, lang)
+                repo.get5DaysWeatherForecast()
                     .collect { response ->
                         val currentDateTime = fetchformattedDateTime()
                         val currentDate = LocalDateTime.parse(currentDateTime, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")).toLocalDate()
@@ -121,11 +111,11 @@ class HomeViewModel(private val repo: RepoImpl, private val locationRepo: Locati
 
 
 
-    private fun getFutureWeatherForecast(latitude: Double, longitude: Double,metric: String = "metric", lang: String = "en") {
+    private fun getFutureWeatherForecast() {
         viewModelScope.launch(Dispatchers.IO) {
             _nextHoursDetailsList.value = Response.Loading
             try {
-                repo.get5DaysWeatherForecast(latitude, longitude, metric, lang)
+                repo.get5DaysWeatherForecast()
                     .collect { response ->
 
                         _nextHoursDetailsList.value = Response.Success(response.list)
@@ -138,11 +128,11 @@ class HomeViewModel(private val repo: RepoImpl, private val locationRepo: Locati
         }
     }
 
-    private fun fetchWeatherFromLatLonUnitLang(lat: Double, lon: Double, units: String = "metric", lang: String = "en") {
+    private fun fetchWeatherFromLatLonUnitLang(units: String = "metric", lang: String = "en") {
         viewModelScope.launch(Dispatchers.IO) {
             _currentDetails.value = Response.Loading
             try {
-                repo.fetchWeatherFromLatLonUnitLang(lat, lon, units, lang)
+                repo.fetchWeatherFromLatLonUnitLang()
                     .collect { response ->
                         _currentDetails.value = Response.Success(response)
                         Log.i("response", response.toString())
@@ -173,10 +163,10 @@ class HomeViewModel(private val repo: RepoImpl, private val locationRepo: Locati
 }
 
 
-class HomeViewModelFactory(private val repo: RepoImpl,private val locationRepo: Location) : ViewModelProvider.Factory {
+class HomeViewModelFactory(private val repo: RepoImpl) : ViewModelProvider.Factory {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return HomeViewModel(repo,locationRepo) as T
+        return HomeViewModel(repo) as T
     }
 }
 

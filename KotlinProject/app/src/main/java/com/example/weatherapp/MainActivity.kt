@@ -93,8 +93,6 @@ class MainActivity : ComponentActivity() {
                             RemoteDataSourceImpl(RetrofitHelper.service),
                             LocalDataSourceImpl()
                         ),
-                        com.example.weatherapp.Utils.Location.Location()
-
                     )
                 )
             )

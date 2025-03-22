@@ -15,27 +15,18 @@ class RepoImpl  (
     }
 
     override suspend fun fetchWeatherFromLatLonUnitLang (
-        lat: Double,
-        lon: Double,
-        units: String,
-        lang: String
+
     ): Flow<WeatherResponse> {
-        return remoteDataSource.getInfoFromLatLonAndUnitAndLang(lat, lon, units, lang)
+        return remoteDataSource.getInfoFromLatLonAndUnitAndLang()
     }
 
     override suspend fun get5DaysWeatherForecast(
-        lat: Double,
-        lon: Double,
-        units: String,
-        lang: String
+
     ): Flow<WeatherForecastResponse> {
-        return remoteDataSource.get5DaysWeatherForecast(lat, lon, units, lang)
+        return remoteDataSource.get5DaysWeatherForecast()
     }
 
-    override suspend fun getHourlyWeatherForecast(
-        lat: Double,
-        lon: Double
-    ): Flow<WeatherForecastResponse> {
-        return remoteDataSource.getHourlyWeatherForecast(lat, lon)
+    override suspend fun getHourlyWeatherForecast(): Flow<WeatherForecastResponse> {
+        return remoteDataSource.getHourlyWeatherForecast()
     }
 }

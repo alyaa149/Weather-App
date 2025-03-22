@@ -6,9 +6,9 @@ import kotlinx.coroutines.flow.Flow
 
 interface Repo {
     suspend fun fetchWeather(city: String)
-    suspend fun fetchWeatherFromLatLonUnitLang(lat: Double, lon: Double, units: String, lang: String): Flow<WeatherResponse>
-    suspend fun get5DaysWeatherForecast(lat: Double, lon: Double, units: String, lang: String): Flow<WeatherForecastResponse>
-    suspend fun getHourlyWeatherForecast(lat: Double, lon: Double): Flow<WeatherForecastResponse>
+    suspend fun fetchWeatherFromLatLonUnitLang(): Flow<WeatherResponse>
+    suspend fun get5DaysWeatherForecast(): Flow<WeatherForecastResponse>
+    suspend fun getHourlyWeatherForecast(): Flow<WeatherForecastResponse>
 
 
 

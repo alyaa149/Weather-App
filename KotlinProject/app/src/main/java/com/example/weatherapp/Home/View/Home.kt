@@ -5,13 +5,17 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.*;
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +26,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
@@ -31,20 +36,21 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavHostController
 import com.example.weatherapp.Home.ViewModel.HomeViewModel
 import com.example.weatherapp.R
 import com.example.weatherapp.Response
+import com.example.weatherapp.Utils.constants.AppStrings
+import com.example.weatherapp.Utils.sharedprefrences.WeatherSharedPrefrences
 import com.example.weatherapp.data.models.WeatherResponse
 import com.example.weatherapp.ui.theme.BabyBlue
 import com.example.weatherapp.ui.theme.Blue
-import java.time.LocalDate
+import com.example.weatherapp.ui.theme.Roze
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun HomeWeatherScreen(viewModel: HomeViewModel, navController: NavHostController) {
+fun HomeWeatherScreen(viewModel: HomeViewModel) {
     val uiState = viewModel.currentDetails.collectAsStateWithLifecycle().value
     val hourlyForecast = viewModel.nextHoursDetailsList.collectAsStateWithLifecycle().value
     val futureDays = viewModel.futureDays.collectAsStateWithLifecycle().value
@@ -82,7 +88,7 @@ fun HomeWeatherScreen(viewModel: HomeViewModel, navController: NavHostController
                     is Response.Loading -> LoadingIndicator()
                     is Response.Success -> {
                         val forecastData = hourlyForecast.data
-                        SectionTitle("Next Hours")
+                        SectionTitle(stringResource(R.string.next_hours))
                         HourlyForecast(forecastData)
                     }
                     is Response.Failure -> {
@@ -96,8 +102,8 @@ fun HomeWeatherScreen(viewModel: HomeViewModel, navController: NavHostController
                     is Response.Loading -> LoadingIndicator()
                     is Response.Success -> {
                         val forecastData = futureDays.data
-                        SectionTitle("Future Days")
-                        FutureForecast(forecastData)
+                        SectionTitle(stringResource(R.string.future_days))
+                        FutureDaysForecast(forecastData)
                     }
                     is Response.Failure -> {
                         Log.e("WeatherError", futureDays.message.message.toString())
@@ -132,78 +138,125 @@ fun SectionTitle(title: String) {
 
 
 @Composable
-fun WeatherCard(weatherData: WeatherResponse, currentDate: String) {
-
-
-    Column(
+fun WeatherCard(
+    weatherData: WeatherResponse,
+    currentDate: String
+) {
+    Box(
+        contentAlignment = Alignment.TopCenter,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top=50.dp)
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .padding(16.dp)
     ) {
-        Text(
-            text = "${weatherData.weather?.get(0)?.description} in ${weatherData.name}",
-            fontFamily = FontFamily.Monospace,
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(270.dp)
+                .padding(top = 70.dp),
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.elevatedCardElevation(8.dp),
+            colors = CardDefaults.cardColors( Color(0xFFFAE6F9))
 
-            fontSize = 24.sp,
-            color = Color.White,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(8.dp))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = 60.dp, start = 20.dp, end = 20.dp, bottom = 5.dp)
+
+                ,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = currentDate,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = BabyBlue,
+                    fontFamily = FontFamily.Monospace
+
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "${weatherData.main?.temp}°C",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Blue,
+                    fontFamily = FontFamily.Monospace
+
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = weatherData?.weather?.get(0)?.description ?: "description" ,
+                    fontSize = 20.sp,
+                    color = Blue,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold
+
+                )
+                Text(
+                    text = weatherData?.name ?: "name",
+                    fontSize = 16.sp,
+                    color = BabyBlue,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
+
+
+                    )
+                Text(
+                    text ="L: ${weatherData.main?.temp_min}°${getUnit()} H: ${weatherData.main?.temp_max}°${getUnit()}",
+                    fontSize = 16.sp,
+                    color = BabyBlue,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
+
+                    )
+            }
+        }
+
         Image(
-            painter = painterResource(id = getDrawableResourceId(weatherData.weather?.get(0)?.main)),
-            contentDescription = null,
-            modifier = Modifier.size(120.dp)
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = currentDate,
-            fontFamily = FontFamily.Monospace,
-
-            fontSize = 16.sp,
-            color = Color.White.copy(alpha = 0.8f),
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "${weatherData.main?.temp}°",
-            fontFamily = FontFamily.Monospace,
-            fontSize = 48.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = "H: ${weatherData.main?.temp_max}°  L: ${weatherData.main?.temp_min}°",
-            fontFamily = FontFamily.Monospace,
-
-            fontSize = 16.sp,
-            color = Color.White.copy(alpha = 0.8f),
-            textAlign = TextAlign.Center
+            painter= painterResource(getDrawableResourceId(weatherData.weather?.get(0)?.main)),
+            contentDescription = "Weather Icon",
+            contentScale = ContentScale.Fit
+,
+                    modifier = Modifier
+                .size(120.dp)
+             //   .clip(CircleShape)
+                .border(4.dp, Roze, CircleShape)
+                .shadow(8.dp, CircleShape)
         )
     }
 }
+
 
 data class WeatherDetail(val icon: Int, val value: String, val label: String)
 
 @Composable
 fun WeatherDetails(weatherData: WeatherResponse) {
+    val windunit :String =
+        if (WeatherSharedPrefrences().getData(AppStrings().WINDUNITKEY) == AppStrings().MILE_PER_HOURKEY) "km/h" else "m/s"
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 16.dp)
     ) {
         val weatherDetails = listOf(
-            WeatherDetail(R.drawable.humidity, "${weatherData.main?.humidity ?: 0}%", "Humidity"),
-            WeatherDetail(R.drawable.wind, "${weatherData.wind?.speed ?: 0} km/h", "Wind"),
-            WeatherDetail(R.drawable.pressure, "${weatherData.main?.pressure ?: 0} hPa", "Pressure"),
-            WeatherDetail(R.drawable.clouds, "${weatherData.clouds?.all ?: 0}%", "Clouds"),
-            WeatherDetail(R.drawable.sunrise, "${weatherData.sys?.sunrise ?: 0}", "Sunrise"),
-            WeatherDetail(R.drawable.sunset, "${weatherData.sys?.sunset ?: 0}", "Sunset")
+            WeatherDetail(R.drawable.humidity, "${weatherData.main?.humidity ?: 0}%",
+                stringResource(
+                    R.string.humidity
+                )
+            ),
+            WeatherDetail(R.drawable.wind, "${weatherData.wind?.speed ?: 0} $windunit",
+                stringResource(R.string.wind)),
+            WeatherDetail(R.drawable.pressure, "${weatherData.main?.pressure ?: 0} hPa",
+                stringResource(
+                    R.string.pressure
+                )
+            ),
+            WeatherDetail(R.drawable.clouds, "${weatherData.clouds?.all ?: 0}%",
+                stringResource(R.string.clouds)),
+            WeatherDetail(R.drawable.sunrise, "${weatherData.sys?.sunrise ?: 0}",
+                stringResource(R.string.sunrise)),
+            WeatherDetail(R.drawable.sunset, "${weatherData.sys?.sunset ?: 0}",
+                stringResource(R.string.sunset))
         )
 
         weatherDetails.chunked(3).forEach { rowItems ->
@@ -211,17 +264,16 @@ fun WeatherDetails(weatherData: WeatherResponse) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween // Better spacing
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 rowItems.forEach { detail ->
                     Box(
-                        modifier = Modifier.weight(1f), // Ensures equal width
+                        modifier = Modifier.weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
                         WeatherDetailItem(icon = detail.icon, value = detail.value, label = detail.label)
                     }
                 }
-                // If odd number of items, add an empty space for alignment
                 if (rowItems.size == 1) {
                     Spacer(modifier = Modifier.weight(1f))
                 }
@@ -291,56 +343,76 @@ return  dateTime.format(outputFormatter);
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun HourlyItem(model: WeatherResponse) {
-    Log.i("response"," mainnnnnn : ${model.weather?.get(0)?.main}")
+    Log.i("response", " mainnnnnn : ${model.weather?.get(0)?.main}")
 
-    Column(
+    Card(
         modifier = Modifier
             .width(90.dp)
             .wrapContentHeight()
             .padding(4.dp)
-            .shadow(8.dp)
+            //  .shadow(8.dp)
             .background(
-                color = Blue.copy(alpha = 0.8f),
-                shape = RoundedCornerShape(10.dp)
-            )
-            .padding(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-            Text(text = "${formatDateTime(model.dt_txt)}",fontFamily = FontFamily.Monospace,
-                textAlign = TextAlign.Center, fontSize = 16.sp, color = Color.White)
-
-        Image(
-            painter = painterResource(
-                id = getDrawableResourceId(model.weather?.get(0)?.main)
+                color = Roze,
+                shape = RoundedCornerShape(20.dp)
             ),
-            contentDescription = null,
-            modifier = Modifier.size(45.dp).padding(8.dp),
-            contentScale = ContentScale.Crop
-        )
-        //weatherData.main?.temp
-        Text(text = "${model.main?.temp}°",fontFamily = FontFamily.Monospace,
-            textAlign = TextAlign.Center, fontSize = 16.sp, color = Color.White)
-        }
+            //.padding(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 9.dp)
 
-}
-
-@RequiresApi(Build.VERSION_CODES.O)
-@Composable
-fun FutureForecast(forecastData: List<WeatherResponse>) {
-    LazyRow(
-        modifier = Modifier.fillMaxWidth().padding(bottom = 60.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(forecastData) { item ->
-            FutureItemCard(item)
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally // Center elements horizontally
+        ) {
+            Text(
+                text = "${formatDateTime(model.dt_txt)}",
+                fontFamily = FontFamily.Monospace,
+                textAlign = TextAlign.Center,
+                fontSize = 16.sp,
+                color = Blue
+            )
+
+            Image(
+                painter = painterResource(id = getDrawableResourceId(model.weather?.get(0)?.main)),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(45.dp)
+                    .padding(8.dp),
+                contentScale = ContentScale.Crop
+            )
+
+            Text(
+                text = "${model.main?.temp}°${getUnit()}",
+                fontFamily = FontFamily.Monospace,
+                textAlign = TextAlign.Center,
+                fontSize = 16.sp,
+                color = Blue
+            )
         }
     }
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun FutureItemCard(item: WeatherResponse) {
+fun FutureDaysForecast(forecastData: List<WeatherResponse>) {
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 60.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(forecastData) { item ->
+            FutureDyItemCard(item)
+        }
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun FutureDyItemCard(item: WeatherResponse) {
 
     Column(
         modifier = Modifier
@@ -349,33 +421,39 @@ fun FutureItemCard(item: WeatherResponse) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(text = getTheDayOfTheWeek(item.dt_txt),
+        Text(
+            text = getTheDayOfTheWeek(item.dt_txt),
             fontSize = 14.sp,
             fontFamily = FontFamily.Monospace,
-            color = Color.White)
+            color = Color.White
+        )
         Spacer(modifier = Modifier.height(4.dp))
         Image(
             painter = painterResource(getDrawableResourceId(item.weather?.get(0)?.main)),
             contentDescription = null,
-            modifier = Modifier.size(45.dp)
+            modifier = Modifier.size(45.dp),
+            contentScale = ContentScale.Fit
+
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = buildAnnotatedString {
                 withStyle(style = SpanStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold)) {
-                    append("${item.main?.temp_max}°C ")
+                    append("${item.main?.temp_max}°${getUnit()}  ")
                 }
                 withStyle(style = SpanStyle(fontSize = 13.sp, fontWeight = FontWeight.Normal)) {
-                    append("/ ${item.main?.temp_min}°C")
+                    append("/ ${item.main?.temp_min}°${getUnit()} ")
                 }
             },
             fontFamily = FontFamily.Monospace,
             color = Color.White
         )
+    }
+
 
     }
 
-}
+
 
 
 
@@ -390,12 +468,24 @@ fun getDrawableResourceId(picPath: String?): Int {
         else -> R.drawable.back
     }
 }
-
+fun getUnit():String{
+    if(WeatherSharedPrefrences().getData(AppStrings().TEMPUNITKEY) == AppStrings().CELSIUSKEY) {
+        return "C"
+    }
+    else if(WeatherSharedPrefrences().getData(AppStrings().TEMPUNITKEY) == AppStrings().FAHRENHEITKEY){
+       return "F"
+    }
+    else{
+        return "K"
+    }
+}
 
 @Composable
 fun LoadingIndicator() {
     Box (
-        modifier = Modifier.fillMaxSize().wrapContentSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .wrapContentSize()
     ){
         CircularProgressIndicator()
     }

@@ -20,9 +20,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,6 +39,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -51,10 +54,20 @@ import com.example.weatherapp.Utils.Location.Location
 import com.example.weatherapp.Utils.sharedprefrences.WeatherSharedPrefrences
 import com.example.weatherapp.ui.theme.BabyBlue
 import com.example.weatherapp.ui.theme.Blue
-import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.Marker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.*
+import com.example.weatherapp.ui.theme.Roze
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.maps.android.compose.rememberMarkerState
 
 @Preview(showBackground = true)
 @Composable
@@ -78,9 +91,9 @@ fun SettingsUI(
     var selectedWindUnit by remember { mutableStateOf(weatherPreferences.getData(AppStrings().WINDUNITKEY) ?: "meter/second") }
     var selectedLanguage by remember { mutableStateOf(weatherPreferences.getData(AppStrings().LANGUAGEKEY) ?: "English") }
     Log.d("SettingsUI", "Selected Location: $selectedLocation")
-    Log.d("SettingsUI", "Selected Temp Unit: $selectedTempUnit")
-    Log.d("SettingsUI", "Selected Wind Unit: $selectedWindUnit")
-    Log.d("SettingsUI", "Selected Language: $selectedLanguage")
+    Log.d("SettingsUI", "Selected Temp Unit: ${WeatherSharedPrefrences().getData(AppStrings().TEMPUNITKEY)}")
+    Log.d("SettingsUI", "Selected Wind Unit: ${WeatherSharedPrefrences().getData(AppStrings().WINDUNITKEY)}")
+    Log.d("SettingsUI", "Selected Language: ${WeatherSharedPrefrences().getData(AppStrings().LANGUAGEKEY)}")
 
     suspend fun updateLocation() {
         val location = Location().getCurrentLocation()
@@ -105,7 +118,7 @@ fun SettingsUI(
             .padding(16.dp)
     ) {
         Text(
-            text = "Settings",
+            text = stringResource(R.string.settings),
             fontSize = 24.sp,
             textAlign = TextAlign.Center,
             fontFamily = FontFamily.Monospace,
@@ -122,60 +135,61 @@ fun SettingsUI(
                     onClick = {
                         selectedLocation = "GPS"
                         weatherPreferences.putData(AppStrings().LOCATIONKEY, "GPS")
+
                         CoroutineScope(Dispatchers.Main).launch {
                             updateLocation()
                         }
                     }
                 )
-                Text("Use GPS", fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, color = Color.White)
+                Text(stringResource(R.string.use_gps), fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, color = Color.White)
                 Spacer(modifier = Modifier.width(16.dp))
                 RadioButton(
                     selected = selectedLocation == "Map",
                     onClick = {
                         selectedLocation = "Map"
                         weatherPreferences.putData(AppStrings().LOCATIONKEY, "Map")
-                        // You can implement map selection logic here
+
+                        navController.navigate("mapScreen")
                     }
                 )
-                Text("Choose from Map", fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, color = Color.White)
+
+                Text(stringResource(R.string.choose_from_map), fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, color = Color.White)
             }
         }
 
-        // Display stored latitude and longitude
-        Text(text = "Latitude: $selectedLocationLat", color = Color.White, fontSize = 16.sp)
-        Text(text = "Longitude: $selectedLocationLon", color = Color.White, fontSize = 16.sp)
+        Text(text = stringResource(R.string.latitude, selectedLocationLat), color = Color.White, fontSize = 16.sp)
+        Text(text = stringResource(R.string.longitude, selectedLocationLon), color = Color.White, fontSize = 16.sp)
 
-        // Temperature Unit
         SettingDropdown(
-            title = "Temperature Unit",
+            title = stringResource(R.string.temperature_unit),
             picPath = R.drawable.tempunit,
-            items = listOf("Kelvin", "Celsius", "Fahrenheit"),
+            items = listOf(stringResource(R.string.kelvin),
+                stringResource(R.string.celsius), "Fahrenheit"),
             selectedItem = selectedTempUnit
         ) {
             selectedTempUnit = it
-            weatherPreferences.putData(AppStrings().TEMPUNITKEY, it)
-        }
+            weatherPreferences.putData(AppStrings().TEMPUNITKEY, if (it == "Celsius") AppStrings().CELSIUSKEY else if (it == "Fahrenheit") AppStrings().FAHRENHEITKEY else AppStrings().KELVINKEY)
 
-        // Wind Speed Unit
+                    }
+""
         SettingDropdown(
-            title = "Wind Speed Unit",
+            title = stringResource(R.string.wind_speed_unit),
             picPath = R.drawable.windsettings,
             items = listOf("meter/second", "mile /hour"),
             selectedItem = selectedWindUnit
         ) {
             selectedWindUnit = it
-            weatherPreferences.putData(AppStrings().WINDUNITKEY, it)
+            weatherPreferences.putData(AppStrings().WINDUNITKEY, if (it == "meter/second") AppStrings().METER_PER_SECONDKEY else AppStrings().MILE_PER_HOURKEY)
         }
 
-        // Language
         SettingDropdown(
-            title = "Language",
+            title = stringResource(R.string.language),
             picPath = R.drawable.language,
             items = listOf("English", "Arabic"),
             selectedItem = selectedLanguage
         ) {
             selectedLanguage = it
-            weatherPreferences.putData(AppStrings().LANGUAGEKEY, it)
+            weatherPreferences.putData(AppStrings().LANGUAGEKEY, if (it == "English") AppStrings().ENGLISHKEY else AppStrings().ARABICKEY)
         }
     }
 }
@@ -189,11 +203,11 @@ fun SettingSection(title: String,picPath:Int ,content: @Composable () -> Unit) {
         Row (
             modifier = Modifier.padding(top = 20.dp),
         ){
-            Image(
-                painter = painterResource(id = picPath),
-                contentDescription = null,
-                modifier = Modifier.size(24.dp)
-            )
+//            Image(
+//                painter = painterResource(id = picPath),
+//                contentDescription = null,
+//                modifier = Modifier.size(24.dp)
+//            )
             Spacer(modifier = Modifier.width(10.dp))
             Text(text = title, fontWeight = FontWeight.Bold, fontSize = 18.sp,fontFamily = FontFamily.Monospace,
                 color = Blue,)
@@ -223,7 +237,7 @@ fun SettingDropdown(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Gray.copy(alpha = 0.2f), shape = RoundedCornerShape(8.dp))
+                .background(Roze, shape = RoundedCornerShape(8.dp))
                 .clickable { expanded = !expanded }
                 .padding(12.dp)
         ) {
@@ -234,11 +248,13 @@ fun SettingDropdown(
             ) {
                 Text(text = selectedItem,fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,)
+                    color = Blue,)
                 Icon(
                     imageVector = Icons.Default.ArrowDropDown,
                     contentDescription = "Dropdown Arrow",
-                    modifier = Modifier.rotate(rotateZ).background(color = Blue)
+                    modifier = Modifier
+                        .rotate(rotateZ)
+                        .background(color = Blue)
                 )
             }
 
@@ -254,6 +270,7 @@ fun SettingDropdown(
                                 text = item,
                                 fontFamily = FontFamily.Monospace,
                                 fontWeight = FontWeight.Bold,
+                                color = Blue,
                             ) },
                         onClick = {
                             onItemSelected(item)

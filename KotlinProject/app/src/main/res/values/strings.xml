@@ -18,4 +18,6 @@
     <string name="clouds">Clouds</string>
     <string name="sunrise">Sunrise</string>
     <string name="sunset">Sunset</string>
+    <string name="confirm_location">Confirm Location</string>
+    <string name="search_for_places">Search for places...</string>
 </resources>

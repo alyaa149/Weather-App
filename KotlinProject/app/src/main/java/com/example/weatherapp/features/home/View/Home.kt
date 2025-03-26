@@ -1,4 +1,4 @@
-package com.example.weatherapp.Home.View
+package com.example.weatherapp.features.home.View
 
 import android.os.Build
 import android.util.Log
@@ -8,7 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.*;
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -19,6 +19,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -36,11 +37,11 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.weatherapp.Home.ViewModel.HomeViewModel
+import com.example.weatherapp.features.home.ViewModel.DetailsViewModel
 import com.example.weatherapp.R
 import com.example.weatherapp.Response
 import com.example.weatherapp.Utils.constants.AppStrings
-import com.example.weatherapp.Utils.sharedprefrences.WeatherSharedPrefrences
+import com.example.weatherapp.Utils.sharedprefrences.sharedPreferencesUtils
 import com.example.weatherapp.data.models.WeatherResponse
 import com.example.weatherapp.ui.theme.BabyBlue
 import com.example.weatherapp.ui.theme.Blue
@@ -50,18 +51,29 @@ import java.time.format.DateTimeFormatter
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun HomeWeatherScreen(viewModel: HomeViewModel) {
+fun HomeWeatherScreen(viewModel: DetailsViewModel) {
     val uiState = viewModel.currentDetails.collectAsStateWithLifecycle().value
     val hourlyForecast = viewModel.nextHoursDetailsList.collectAsStateWithLifecycle().value
     val futureDays = viewModel.futureDays.collectAsStateWithLifecycle().value
     val currentDate = viewModel.currentDate
+
+    LaunchedEffect(Unit) {
+        val lat = sharedPreferencesUtils.getData(AppStrings().LATITUDEKEY)?.toDouble() ?: 0.0
+        val lon = sharedPreferencesUtils.getData(AppStrings().LONGITUDEKEY)?.toDouble() ?: 0.0
+
+        viewModel.fetchWeatherFromLatLonUnitLang(lat, lon,)
+        viewModel.getFutureWeatherForecast(lat, lon)
+        viewModel.getFutureDaysWeatherForecast(lat, lon)
+    }
+
+
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(Blue, BabyBlue, Blue)
+                    colors = listOf(Color.White,Blue)
                 )
             )
     ) {
@@ -81,6 +93,7 @@ fun HomeWeatherScreen(viewModel: HomeViewModel) {
                         Log.e("WeatherError", uiState.message.message.toString())
                     }
                 }
+
             }
 
             item {
@@ -113,6 +126,7 @@ fun HomeWeatherScreen(viewModel: HomeViewModel) {
         }
     }
 }
+
 @RequiresApi(Build.VERSION_CODES.O)
 fun getTheDayOfTheWeek(dateString: String?): String {
     val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -151,7 +165,7 @@ fun WeatherCard(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(270.dp)
+                .height(300.dp)
                 .padding(top = 70.dp),
             shape = RoundedCornerShape(16.dp),
             elevation = CardDefaults.elevatedCardElevation(8.dp),
@@ -171,12 +185,13 @@ fun WeatherCard(
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = BabyBlue,
-                    fontFamily = FontFamily.Monospace
+                    fontFamily = FontFamily.Monospace,
+                    textAlign = TextAlign.Center
 
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "${weatherData.main?.temp}°C",
+                    text = "${weatherData.main?.temp}°${getUnit()}",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = Blue,
@@ -185,7 +200,7 @@ fun WeatherCard(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = weatherData?.weather?.get(0)?.description ?: "description" ,
+                    text = weatherData.weather?.get(0)?.description ?: "description" ,
                     fontSize = 20.sp,
                     color = Blue,
                     fontFamily = FontFamily.Monospace,
@@ -193,7 +208,7 @@ fun WeatherCard(
 
                 )
                 Text(
-                    text = weatherData?.name ?: "name",
+                    text = weatherData.name ?: "name",
                     fontSize = 16.sp,
                     color = BabyBlue,
                     fontFamily = FontFamily.Monospace,
@@ -202,13 +217,17 @@ fun WeatherCard(
 
                     )
                 Text(
-                    text ="L: ${weatherData.main?.temp_min}°${getUnit()} H: ${weatherData.main?.temp_max}°${getUnit()}",
-                    fontSize = 16.sp,
-                    color = BabyBlue,
+                    text = buildAnnotatedString {
+                        withStyle(style = SpanStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold)) {
+                            append("feels like ")
+                        }
+                        withStyle(style = SpanStyle(fontSize = 16.sp, fontWeight = FontWeight.Normal)) {
+                            append("/ ${weatherData.main?.feels_like}°${getUnit()} ")
+                        }
+                    },
                     fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-
-                    )
+                    color = BabyBlue
+                )
             }
         }
 
@@ -232,7 +251,7 @@ data class WeatherDetail(val icon: Int, val value: String, val label: String)
 @Composable
 fun WeatherDetails(weatherData: WeatherResponse) {
     val windunit :String =
-        if (WeatherSharedPrefrences().getData(AppStrings().WINDUNITKEY) == AppStrings().MILE_PER_HOURKEY) "km/h" else "m/s"
+        if (sharedPreferencesUtils.getData(AppStrings().WINDUNITKEY) == AppStrings().MILE_PER_HOURKEY) "km/h" else "m/s"
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -317,8 +336,7 @@ fun WeatherDetailItem(icon: Int, value: String, label: String) {
 @Composable
 fun HourlyForecast(forecastResponse: List<WeatherResponse>) {
     LazyRow(
-        modifier = Modifier.fillMaxWidth()
-        ,
+        modifier = Modifier.fillMaxWidth(),
         contentPadding = PaddingValues(horizontal = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
 
@@ -336,7 +354,7 @@ fun formatDateTime(dtTxt: String?) :String? {
     val outputFormatter = DateTimeFormatter.ofPattern("h:mm a")
 
     val dateTime = LocalDateTime.parse(dtTxt, inputFormatter)
-return  dateTime.format(outputFormatter);
+return  dateTime.format(outputFormatter)
 
 }
 
@@ -344,18 +362,15 @@ return  dateTime.format(outputFormatter);
 @Composable
 fun HourlyItem(model: WeatherResponse) {
     Log.i("response", " mainnnnnn : ${model.weather?.get(0)?.main}")
-
     Card(
         modifier = Modifier
             .width(90.dp)
-            .wrapContentHeight()
+            .height(150.dp)
             .padding(4.dp)
-            //  .shadow(8.dp)
             .background(
                 color = Roze,
                 shape = RoundedCornerShape(20.dp)
             ),
-            //.padding(8.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 9.dp)
 
     ) {
@@ -469,10 +484,10 @@ fun getDrawableResourceId(picPath: String?): Int {
     }
 }
 fun getUnit():String{
-    if(WeatherSharedPrefrences().getData(AppStrings().TEMPUNITKEY) == AppStrings().CELSIUSKEY) {
+    if(sharedPreferencesUtils.getData(AppStrings().TEMPUNITKEY) == AppStrings().CELSIUSKEY) {
         return "C"
     }
-    else if(WeatherSharedPrefrences().getData(AppStrings().TEMPUNITKEY) == AppStrings().FAHRENHEITKEY){
+    else if(sharedPreferencesUtils.getData(AppStrings().TEMPUNITKEY) == AppStrings().FAHRENHEITKEY){
        return "F"
     }
     else{

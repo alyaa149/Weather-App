@@ -15,5 +15,6 @@ class AppStrings {
     val METER_PER_SECONDKEY = "m/s"
     val MILE_PER_HOURKEY= "mile/h"
     val LOCATIONKEY = "LOCATION"
+    val CHOSENCITYKEY = "CITY"
 
 }

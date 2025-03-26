@@ -1,10 +1,14 @@
 package com.example.weatherapp.data.models
 
-data class City(  val id: Int,
-                  val name: String,
-                  val coord: Coord,
-                  val country: String,
-                  val population: Int,
-                  val timezone: Int,
-                  val sunrise: Long,
-                  val sunset: Long)
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+
+@Entity(tableName = "weather_database")
+data class City(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val address: String,
+    val lat: Double,
+    val lon: Double,
+)
+

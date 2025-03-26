@@ -1,6 +1,5 @@
-package com.example.weatherapp.Home.ViewModel
+package com.example.weatherapp.features.home.ViewModel
 
-import android.content.Context
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
@@ -8,9 +7,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.weatherapp.Response
-import com.example.weatherapp.Utils.Location.Location
+import com.example.weatherapp.Utils.constants.AppStrings
+import com.example.weatherapp.Utils.sharedprefrences.sharedPreferencesUtils
 import com.example.weatherapp.data.models.WeatherResponse
-import com.example.weatherapp.data.repo.RepoImpl
+import com.example.weatherapp.data.repo.Repo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +20,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 @RequiresApi(Build.VERSION_CODES.O)
-class HomeViewModel(private val repo: RepoImpl) : ViewModel() {
+class DetailsViewModel(private val repo: Repo) : ViewModel() {
 
     private val _currentDetails = MutableStateFlow<Response<WeatherResponse>>(Response.Loading)
     val currentDetails: StateFlow<Response<WeatherResponse>> = _currentDetails
@@ -39,23 +39,22 @@ class HomeViewModel(private val repo: RepoImpl) : ViewModel() {
     private val _futureDays =MutableStateFlow<Response<List<WeatherResponse>>>(Response.Loading)
     val futureDays: StateFlow<Response<List<WeatherResponse>>> = _futureDays
 
-    init {
-        fetchWeatherFromLatLonUnitLang()
-        getFutureWeatherForecast()
-        getFutureDaysWeatherForecast()
-    }
+//    init {
+//        fetchWeatherFromLatLonUnitLang()
+//        getFutureWeatherForecast()
+//        getFutureDaysWeatherForecast()
+//    }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun getFutureDaysWeatherForecast() {
+     fun getFutureDaysWeatherForecast(lat: Double, lon: Double) {
         viewModelScope.launch(Dispatchers.IO) {
             _futureDays.value = Response.Loading
             try {
-                repo.get5DaysWeatherForecast()
+                repo.get5DaysWeatherForecast(lat, lon,sharedPreferencesUtils.getData(AppStrings().TEMPUNITKEY) ?: "metric" ,sharedPreferencesUtils.getData(AppStrings().LANGUAGEKEY) ?: "en")
                     .collect { response ->
                         val currentDateTime = fetchformattedDateTime()
                         val currentDate = LocalDateTime.parse(currentDateTime, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")).toLocalDate()
                         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-
                         val futureForecasts = response.list.filter { forecastItem ->
                             try {
                                 val forecastDateTime = LocalDateTime.parse(forecastItem.dt_txt, formatter)
@@ -111,11 +110,11 @@ class HomeViewModel(private val repo: RepoImpl) : ViewModel() {
 
 
 
-    private fun getFutureWeatherForecast() {
+     fun getFutureWeatherForecast(lat: Double, lon: Double) {
         viewModelScope.launch(Dispatchers.IO) {
             _nextHoursDetailsList.value = Response.Loading
             try {
-                repo.get5DaysWeatherForecast()
+                repo.get5DaysWeatherForecast(lat,lon,sharedPreferencesUtils.getData(AppStrings().TEMPUNITKEY) ?: "metric" ,sharedPreferencesUtils.getData(AppStrings().LANGUAGEKEY) ?: "en")
                     .collect { response ->
 
                         _nextHoursDetailsList.value = Response.Success(response.list)
@@ -128,14 +127,16 @@ class HomeViewModel(private val repo: RepoImpl) : ViewModel() {
         }
     }
 
-    private fun fetchWeatherFromLatLonUnitLang(units: String = "metric", lang: String = "en") {
+     fun fetchWeatherFromLatLonUnitLang(lat: Double, lon: Double, ) {
         viewModelScope.launch(Dispatchers.IO) {
             _currentDetails.value = Response.Loading
             try {
-                repo.fetchWeatherFromLatLonUnitLang()
+                repo.fetchWeatherFromLatLonUnitLang(lat,lon,sharedPreferencesUtils.getData(AppStrings().TEMPUNITKEY) ?: "metric" ,sharedPreferencesUtils.getData(
+                    AppStrings().LANGUAGEKEY) ?: "en"
+                )
                     .collect { response ->
                         _currentDetails.value = Response.Success(response)
-                        Log.i("response", response.toString())
+                        Log.i("response","ellly 3ayzah ${response.toString()}")
                     }
             } catch (e: Exception) {
                 _currentDetails.value = Response.Failure(e)
@@ -163,10 +164,10 @@ class HomeViewModel(private val repo: RepoImpl) : ViewModel() {
 }
 
 
-class HomeViewModelFactory(private val repo: RepoImpl) : ViewModelProvider.Factory {
+class DetailsViewModelFactory(private val repo: Repo) : ViewModelProvider.Factory {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return HomeViewModel(repo) as T
+        return DetailsViewModel(repo) as T
     }
 }
 

@@ -80,7 +80,8 @@ dependencies {
     implementation("com.google.maps.android:places-compose:0.1.3")
     implementation("com.google.android.gms:play-services-maps:19.1.0")
     implementation("com.google.maps.android:maps-compose:2.11.2")
-
+    implementation("com.google.accompanist:accompanist-permissions:0.33.2-alpha")
+    implementation("com.google.android.libraries.places:places:3.4.0")
 
 
 

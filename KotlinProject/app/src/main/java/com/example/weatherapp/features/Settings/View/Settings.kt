@@ -1,9 +1,8 @@
-package com.example.weatherapp.Settings.View
+package com.example.weatherapp.features.Settings.View
 
 import android.util.Log
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,16 +14,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,8 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -48,39 +42,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.weatherapp.R
-import com.example.weatherapp.Settings.ViewModel.SettingsViewModel
 import com.example.weatherapp.Utils.constants.AppStrings
 import com.example.weatherapp.Utils.Location.Location
-import com.example.weatherapp.Utils.sharedprefrences.WeatherSharedPrefrences
 import com.example.weatherapp.ui.theme.BabyBlue
 import com.example.weatherapp.ui.theme.Blue
-import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.Marker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import androidx.compose.runtime.*
+import com.example.weatherapp.Utils.sharedprefrences.sharedPreferencesUtils
 import com.example.weatherapp.ui.theme.Roze
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.rememberCameraPositionState
-import com.google.maps.android.compose.rememberMarkerState
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    //SettingsUI(viewModel = SettingsViewModel(), navController = NavHostController(context = LocalContext.current))
-}
 
 @Composable
 fun SettingsUI(
-    viewModel: SettingsViewModel,
-    navController: NavHostController,
+    navigateToMap : () -> Unit,
 ) {
-    val weatherPreferences = remember { WeatherSharedPrefrences() }
+    val weatherPreferences = remember { sharedPreferencesUtils }
 
     var selectedLocation by remember { mutableStateOf(weatherPreferences.getData(AppStrings().LOCATIONKEY) ?: "GPS") }
     var selectedLocationLon by remember { mutableStateOf(weatherPreferences.getData(AppStrings().LONGITUDEKEY) ?: "") }
@@ -91,9 +67,9 @@ fun SettingsUI(
     var selectedWindUnit by remember { mutableStateOf(weatherPreferences.getData(AppStrings().WINDUNITKEY) ?: "meter/second") }
     var selectedLanguage by remember { mutableStateOf(weatherPreferences.getData(AppStrings().LANGUAGEKEY) ?: "English") }
     Log.d("SettingsUI", "Selected Location: $selectedLocation")
-    Log.d("SettingsUI", "Selected Temp Unit: ${WeatherSharedPrefrences().getData(AppStrings().TEMPUNITKEY)}")
-    Log.d("SettingsUI", "Selected Wind Unit: ${WeatherSharedPrefrences().getData(AppStrings().WINDUNITKEY)}")
-    Log.d("SettingsUI", "Selected Language: ${WeatherSharedPrefrences().getData(AppStrings().LANGUAGEKEY)}")
+    Log.d("SettingsUI", "Selected Temp Unit: ${sharedPreferencesUtils.getData(AppStrings().TEMPUNITKEY)}")
+    Log.d("SettingsUI", "Selected Wind Unit: ${sharedPreferencesUtils.getData(AppStrings().WINDUNITKEY)}")
+    Log.d("SettingsUI", "Selected Language: ${sharedPreferencesUtils.getData(AppStrings().LANGUAGEKEY)}")
 
     suspend fun updateLocation() {
         val location = Location().getCurrentLocation()
@@ -128,7 +104,7 @@ fun SettingsUI(
         )
 
         // Location Selection
-        SettingSection(title = "Choose Location", picPath = R.drawable.location) {
+        SettingSection(title = "Choose Location") {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(
                     selected = selectedLocation == "GPS",
@@ -148,8 +124,7 @@ fun SettingsUI(
                     onClick = {
                         selectedLocation = "Map"
                         weatherPreferences.putData(AppStrings().LOCATIONKEY, "Map")
-
-                        navController.navigate("mapScreen")
+                        navigateToMap()
                     }
                 )
 
@@ -163,21 +138,48 @@ fun SettingsUI(
         SettingDropdown(
             title = stringResource(R.string.temperature_unit),
             picPath = R.drawable.tempunit,
-            items = listOf(stringResource(R.string.kelvin),
-                stringResource(R.string.celsius), "Fahrenheit"),
+            items = listOf(
+                stringResource(R.string.kelvin),
+                stringResource(R.string.celsius),
+                "Fahrenheit"
+            ),
             selectedItem = selectedTempUnit
         ) {
             selectedTempUnit = it
-            weatherPreferences.putData(AppStrings().TEMPUNITKEY, if (it == "Celsius") AppStrings().CELSIUSKEY else if (it == "Fahrenheit") AppStrings().FAHRENHEITKEY else AppStrings().KELVINKEY)
+            weatherPreferences.putData(
+                AppStrings().TEMPUNITKEY,
+                when (it) {
+                    "Celsius" -> {
+                        selectedWindUnit = "meter/second"
+                        weatherPreferences.putData(AppStrings().WINDUNITKEY, AppStrings().METER_PER_SECONDKEY)
+                        AppStrings().CELSIUSKEY}
 
+                    "Fahrenheit" -> {
+                        selectedWindUnit = "mile/hour"
+                        weatherPreferences.putData(AppStrings().WINDUNITKEY, AppStrings().MILE_PER_HOURKEY)
+                        AppStrings().FAHRENHEITKEY
                     }
-""
+                    else -> {
+                        selectedWindUnit = "meter/second"
+                        weatherPreferences.putData(AppStrings().WINDUNITKEY, AppStrings().METER_PER_SECONDKEY)
+                        AppStrings().KELVINKEY}
+                }
+            )
+        }
+
         SettingDropdown(
             title = stringResource(R.string.wind_speed_unit),
             picPath = R.drawable.windsettings,
-            items = listOf("meter/second", "mile /hour"),
+            items = listOf("meter/second", "mile/hour"),
             selectedItem = selectedWindUnit
         ) {
+            if(it == "mile/hour"){
+                selectedTempUnit = "Fahrenheit"
+                weatherPreferences.putData(AppStrings().TEMPUNITKEY, AppStrings().FAHRENHEITKEY)
+            }else{
+                selectedTempUnit = "Celsius"
+                weatherPreferences.putData(AppStrings().TEMPUNITKEY, AppStrings().CELSIUSKEY)
+            }
             selectedWindUnit = it
             weatherPreferences.putData(AppStrings().WINDUNITKEY, if (it == "meter/second") AppStrings().METER_PER_SECONDKEY else AppStrings().MILE_PER_HOURKEY)
         }
@@ -198,16 +200,12 @@ fun SettingsUI(
 
 //common
 @Composable
-fun SettingSection(title: String,picPath:Int ,content: @Composable () -> Unit) {
+fun SettingSection(title: String ,content: @Composable () -> Unit) {
     Column(modifier = Modifier.padding(vertical = 8.dp)) {
         Row (
             modifier = Modifier.padding(top = 20.dp),
         ){
-//            Image(
-//                painter = painterResource(id = picPath),
-//                contentDescription = null,
-//                modifier = Modifier.size(24.dp)
-//            )
+
             Spacer(modifier = Modifier.width(10.dp))
             Text(text = title, fontWeight = FontWeight.Bold, fontSize = 18.sp,fontFamily = FontFamily.Monospace,
                 color = Blue,)
@@ -233,7 +231,7 @@ fun SettingDropdown(
         animationSpec = tween(durationMillis = 300), label = ""
     )
 
-    SettingSection(title,picPath) {
+    SettingSection(title) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()

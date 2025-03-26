@@ -40,34 +40,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.example.weatherapp.data.local.LocalDataSourceImpl
-import com.example.weatherapp.data.remote.RemoteDataSourceImpl
-import com.example.weatherapp.data.remote.RetrofitHelper
-import com.example.weatherapp.data.repo.RepoImpl
 import androidx.compose.runtime.MutableState
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.core.app.ActivityCompat
-import com.example.weatherapp.Home.ViewModel.HomeViewModelFactory
 import com.example.weatherapp.navigation.ScreenRoutes
 import com.example.weatherapp.navigation.SetUpNavHost
 import com.example.weatherapp.ui.theme.BabyBlue
 import com.example.weatherapp.ui.theme.Blue
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
 import com.google.android.gms.location.LocationServices
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.drawscope.Fill
-import androidx.compose.ui.platform.LocalContext
 
 class MainActivity : ComponentActivity() {
     public val REQUEST_LOCATION_CODE = 2005
@@ -86,16 +78,7 @@ class MainActivity : ComponentActivity() {
                     LocationManager.GPS_PROVIDER
                 )
             ) }
-            AppNavigation(
-                viewModel(
-                    factory = HomeViewModelFactory(
-                        RepoImpl(
-                            RemoteDataSourceImpl(RetrofitHelper.service),
-                            LocalDataSourceImpl()
-                        ),
-                    )
-                )
-            )
+            AppNavigation()
         }
     }
 
@@ -245,8 +228,7 @@ fun CurvedBottomNavigationBar(navController: NavController) {
                 }
             )
 
-            Spacer(Modifier.width(56.dp)) // Space for the Floating Button
-
+            Spacer(Modifier.width(56.dp))
             BottomNavItem(
                 icon = Icons.Default.Settings,
                 label = "Settings",
@@ -258,25 +240,30 @@ fun CurvedBottomNavigationBar(navController: NavController) {
             )
 
             BottomNavItem(
-                icon = Icons.Default.Person,
-                label = "Profile",
-                isSelected = selectedItem.value == Icons.Default.Person,
+                icon = Icons.Default.Notifications,
+                label = "Alerts",
+                isSelected = selectedItem.value == Icons.Default.Notifications,
                 onClick = {
-                    selectedItem.value = Icons.Default.Person
+                    selectedItem.value = Icons.Default.Notifications
+                    navController.navigate(ScreenRoutes.AlertsScreen) { popUpTo(0) }
                 }
             )
         }
 
         FloatingActionButton(
-            onClick = { /* Handle FAB click */ },
+            onClick = {
+                navController.navigate(ScreenRoutes.MapScreenFromNavBar)
+                selectedItem.value = Icons.Default.Search
+            },
             contentColor = BabyBlue,
             modifier = Modifier
                 .size(65.dp)
                 .align(Alignment.TopCenter)
-                .shadow(8.dp, shape = CircleShape)
+                .shadow(8.dp, shape = CircleShape),
+
 
         ) {
-            Icon(Icons.Default.Notifications, contentDescription = "Add")
+            Icon(Icons.Default.Search, contentDescription = "Add")
         }
     }
 }
@@ -306,7 +293,7 @@ fun BottomNavItem(icon: ImageVector, label: String, isSelected: Boolean, onClick
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun AppNavigation(viewModel: Any) {
+fun AppNavigation() {
     val navController = rememberNavController()
     Scaffold(
         bottomBar = {

@@ -11,7 +11,17 @@ sealed class ScreenRoutes {
     @Serializable
     object SettingsScreen : ScreenRoutes()
     @Serializable
-    object MapScreen : ScreenRoutes()
+    object MapScreenFromSettings : ScreenRoutes()
+    @Serializable
+    object MapScreenFromFavorites : ScreenRoutes()
+    @Serializable
+    object MapScreenFromNavBar:ScreenRoutes()
+    @Serializable
+    object SearchScreen : ScreenRoutes()
+    @Serializable
+    object AlertsScreen : ScreenRoutes()
+    @Serializable
+    data class FavDetailsScreen(val lon: Double, val lat: Double) : ScreenRoutes()
 }
     //@Serializable
     // data class HomeScreen(val userName: String) : ScreenRoutes()

@@ -3,6 +3,7 @@ package com.example.weatherapp.data.repo
 import android.util.Log
 import com.example.weatherapp.data.local.LocalDataSource
 import com.example.weatherapp.data.models.City
+import com.example.weatherapp.data.models.Reminder
 import com.example.weatherapp.data.models.WeatherForecastResponse
 import com.example.weatherapp.data.models.WeatherResponse
 import com.example.weatherapp.data.remote.RemoteDataSource
@@ -55,5 +56,15 @@ class RepoImpl(
     override fun getAllFavs(): Flow<List<City>> {
         return localDataSource.getAllFavs()
     }
+
+    override suspend fun insertReminder(reminder: Reminder): Long {
+        return localDataSource.insertReminder(reminder)
+    }
+
+    override fun getAllReminders(): Flow<List<Reminder>> {
+return localDataSource.getAllReminders()    }
+
+    override suspend fun deleteReminder(reminder: Reminder) {
+return localDataSource.deleteReminder(reminder)        }
 
 }

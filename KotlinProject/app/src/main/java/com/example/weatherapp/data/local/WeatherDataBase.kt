@@ -5,11 +5,13 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.weatherapp.data.models.City
+import com.example.weatherapp.data.models.Reminder
 
 
-@Database(entities = [City::class], version = 2)
+@Database(entities = [City::class, Reminder::class], version = 3)
 abstract class WeatherDataBase : RoomDatabase()  {
     abstract fun getWeatherDao(): WeatherDao
+    abstract fun getReminderDao(): ReminderDao
     companion object {
         const val DATABASE_NAME = "weather_database"
         @Volatile

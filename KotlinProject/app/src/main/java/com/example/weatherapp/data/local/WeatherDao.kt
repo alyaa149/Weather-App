@@ -18,6 +18,4 @@ interface WeatherDao {
      fun getAllFavs(): Flow<List<City>>
     @Delete
     suspend fun deleteWeather(weather: City):Int
-
-
 }

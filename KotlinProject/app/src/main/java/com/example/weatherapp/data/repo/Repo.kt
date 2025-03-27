@@ -17,7 +17,7 @@ interface Repo {
     //Reminder
     suspend fun insertReminder(reminder: Reminder):Long
     fun getAllReminders(): Flow<List<Reminder>>
-    suspend fun deleteReminder(reminder: Reminder)
+    suspend fun deleteReminder(reminderId: Int)
 
 
 

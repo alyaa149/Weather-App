@@ -25,6 +25,6 @@ class LocalDataSourceImpl(private val weatherDao: WeatherDao, private val remind
     override fun getAllReminders(): Flow<List<Reminder>> {
 return reminderDao.getAllReminders()    }
 
-    override suspend fun deleteReminder(reminder: Reminder) {
-return reminderDao.deleteReminder(reminder)    }
+    override suspend fun deleteReminder(reminderId: Int) {
+return reminderDao.deleteReminder(reminderId)    }
 }

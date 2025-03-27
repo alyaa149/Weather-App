@@ -1,11 +1,9 @@
 package com.example.weatherapp.features.alerts.view
 
-import android.app.TimePickerDialog
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -37,19 +35,32 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.weatherapp.ui.theme.Blue
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.weatherapp.R
-import com.example.weatherapp.data.models.ReminderType
+import com.example.weatherapp.Response
+import com.example.weatherapp.data.models.Reminder
+import com.example.weatherapp.features.alerts.viewmodel.AlertViewModel
+import com.example.weatherapp.features.favorites.view.LocationItem
+import com.example.weatherapp.features.home.View.LoadingIndicator
 import com.example.weatherapp.ui.theme.Roze
 import java.time.Instant
 import java.time.LocalDate
@@ -62,10 +73,19 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun AlertsScreen() {
+fun AlertsScreen(viewModel: AlertViewModel) {
     var isSheetOpen by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val eventFlow = viewModel.eventFlow
+    val coroutineScope = rememberCoroutineScope()
 
+    LaunchedEffect(Unit) {
+        eventFlow.collect {
+            message ->
+                snackbarHostState.showSnackbar(message)
+        }
+    }
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(
@@ -74,21 +94,110 @@ fun AlertsScreen() {
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Add Location",
+                    contentDescription = "Add Reminder",
                     tint = Blue
                 )
             }
-        }
+        } ,
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { padding ->
         Box(modifier = Modifier.padding(padding)) {
+            when (val reminders = viewModel.reminders.collectAsState().value) {
+                is Response.Loading -> {
+                    LoadingIndicator()
+                }
+                is Response.Success -> {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(reminders.data) { reminder ->  // Safe access to .data
+                            AlertItem(
+                                reminder = reminder,
+                                onRemove = { viewModel.deleteAlert(reminder, snackbarHostState, coroutineScope) },
+                            )
+                        }
+                    }
+                }
+                is Response.Failure -> {
+                    Text(text = "Error: ${reminders.message}")
+                }
+            }
+
             if (isSheetOpen) {
-                PopUpAlert(sheetState, onDismiss = { isSheetOpen = false },   onConfirm = { time, type ->
-                    Log.d("response", "Set $type at $time")
-                })
+                ModalBottomSheet(
+                    onDismissRequest = { isSheetOpen = false },
+                    sheetState = sheetState
+                ) {
+                    PopUpAlert(
+                        sheetState = sheetState,
+                        onDismiss = { isSheetOpen = false },
+                        onConfirm = { time, type ->
+                            viewModel.addAlert(Reminder(time = time, type = type), snackbarHostState, coroutineScope)
+                            isSheetOpen = false
+                        }
+                    )
+                }
+            }
+        }
+
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun AlertItem(reminder: Reminder, onRemove: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+            elevation = CardDefaults.cardElevation(
+            defaultElevation = 8.dp
+        ),
+        colors = CardDefaults.cardColors(
+            containerColor = Roze
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 7.dp)
+            ) {
+                Text(
+                    text = "${reminder.time.dayOfWeek.toString()} ${reminder.time.dayOfMonth}/${reminder.time.month}",
+                    style = TextStyle(
+                        color = Blue,
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                    modifier = Modifier.padding(start = 5.dp)
+                )
+                Text(
+                    text = "${reminder.time.hour}:${reminder.time.minute}  ${reminder.type}",
+                    style = TextStyle(
+                        color = Blue,
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 16.sp,
+                    ),
+                    modifier = Modifier.padding(start = 17.dp),
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            IconButton(onClick = onRemove) {
+                Icon(imageVector = Icons.Default.Delete, contentDescription = "Remove", tint = Blue)
             }
         }
     }
+
+
 }
+
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,15 +205,17 @@ fun AlertsScreen() {
 fun PopUpAlert(
     sheetState: SheetState,
     onDismiss: () -> Unit,
-    onConfirm: (LocalDateTime, ReminderType) -> Unit
+    onConfirm: (LocalDateTime, String) -> Unit
 ) {
     val currentDate = LocalDate.now()
     val currentTime = LocalTime.now()
 
     var selectedDate by remember { mutableStateOf(currentDate) }
     var selectedTime by remember { mutableStateOf(currentTime) }
-    var selectedReminderType by remember { mutableStateOf(ReminderType.ALARM) }
+    var selectedReminderType by remember { mutableStateOf("ALARM") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val reminderTypes = listOf("ALARM", "NOTIFICATION")
+    val snackbarHostState = remember { SnackbarHostState() }
 
     ModalBottomSheet(
         containerColor = Roze,
@@ -122,17 +233,17 @@ fun PopUpAlert(
                 fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp,
-                modifier = Modifier.padding(bottom = 8.dp,start = 15.dp)
+                modifier = Modifier.padding(start = 15.dp)
             )
 
             Column(Modifier.padding(start = 8.dp)) {
-                ReminderType.values().forEach { type ->
+                reminderTypes.forEach { type ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { selectedReminderType = type }
-                            .padding(vertical = 8.dp)
+                         //   .padding(vertical = 8.dp)
                     ) {
                         RadioButton(
                             selected = (type == selectedReminderType),
@@ -144,49 +255,45 @@ fun PopUpAlert(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Icon(
-                            imageVector = when (type) {
-                                ReminderType.ALARM -> Icons.Default.Notifications
-                                ReminderType.NOTIFICATION -> Icons.Default.Notifications
-                            },
-                            contentDescription = type.toString(),
+                            imageVector = Icons.Default.Notifications,
+                            contentDescription = type,
                             tint = if (type == selectedReminderType) Blue else Color.Gray
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = type.toString(),
+                            text = type,
                             color = if (type == selectedReminderType) Blue else Color.Gray
                         )
                     }
                 }
             }
 
-            // Date and Time Pickers
-            DatePickerSection(
-                selectedDate = selectedDate,
-                onDateSelected = { selectedDate = it }
-            )
-
-            Divider(
-                color = Blue,
-                modifier = Modifier
-                    .height(1.dp)
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp)
-            )
-
-            TimePickerSection(
-                selectedTime = selectedTime,
-                onTimeSelected = { newTime ->
-                    if (selectedDate == currentDate && newTime.isBefore(currentTime)) {
-                        errorMessage = "Please choose a future time"
-                    } else {
-                        selectedTime = newTime
-                        errorMessage = null
-                    }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Box(modifier = Modifier.weight(1f)) {
+                    DatePickerSection(
+                        selectedDate = selectedDate,
+                        onDateSelected = { selectedDate = it }
+                    )
                 }
-            )
+                Spacer(modifier = Modifier.width(16.dp)) // Add space between date and time pickers
+                Box(modifier = Modifier.weight(1f)) {
+                    TimePickerSection(
+                        selectedTime = selectedTime,
+                        onTimeSelected = { newTime ->
+                            if (selectedDate == currentDate && newTime.isBefore(currentTime)) {
+                                errorMessage = "Please choose a future time"
+                            } else {
+                                selectedTime = newTime
+                                errorMessage = null
+                            }
+                        }
+                    )
+                }
+            }
 
-            // Error message
             errorMessage?.let {
                 Text(
                     text = it,
@@ -195,7 +302,6 @@ fun PopUpAlert(
                 )
             }
 
-            // Confirm Button
             Button(
                 onClick = {
                     val selectedDateTime = LocalDateTime.of(selectedDate, selectedTime)
@@ -208,15 +314,19 @@ fun PopUpAlert(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 16.dp, bottom = 32.dp),
+                    .padding(bottom = 32.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Blue)
             ) {
                 Text("Set Reminder")
             }
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.padding(16.dp)
+            )
         }
     }
-}
 
+}
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -226,7 +336,8 @@ fun DatePickerSection(
     onDateSelected: (LocalDate) -> Unit
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
-    var showError by remember { mutableStateOf(false) } // For error message
+    var showError by remember { mutableStateOf(false) }
+
     val today = LocalDate.now()
 
     val datePickerState = rememberDatePickerState(
@@ -241,7 +352,7 @@ fun DatePickerSection(
         }
     )
 
-    Column(modifier = Modifier.padding(16.dp)) {
+    Column(modifier = Modifier.padding(5.dp).border(2.dp,Blue, shape = MaterialTheme.shapes.small).padding(10.dp)) {
         Text(
             text = "Date",
             fontFamily = FontFamily.Monospace,
@@ -323,7 +434,7 @@ fun TimePickerSection(
     var showTimePicker by remember { mutableStateOf(false) }
     var displayedTime by remember { mutableStateOf(selectedTime.formatTime()) }
 
-    Column(modifier = Modifier.padding(16.dp)) {
+    Column(modifier = Modifier.padding(5.dp).border(2.dp,Blue, shape = MaterialTheme.shapes.small).padding(10.dp)) {
         Text(
             text = "Time",
             modifier = Modifier.padding(bottom = 4.dp),
@@ -385,9 +496,90 @@ fun TimePickerSection(
         }
     }
 }
+@Composable
+fun ErrorState(
+    message: String,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+
+    Column(
+        modifier = modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = Icons.Default.Warning,
+            contentDescription = "Error",
+            tint = MaterialTheme.colorScheme.error,
+            modifier = Modifier.size(48.dp),)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+                    text = "Something went wrong",
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Blue,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 32.dp)
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Button(
+            onClick = onRetry,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer,
+                contentColor = MaterialTheme.colorScheme.onErrorContainer
+            )
+        ) {
+            Text(text = "Try Again")
+        }
+    }
+}
 
 @RequiresApi(Build.VERSION_CODES.O)
 fun LocalTime.formatTime(): String {
     val formatter = DateTimeFormatter.ofPattern("h:mm a")
     return this.format(formatter)
+}
+@Composable
+fun EmptyStateUI(
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = Icons.Default.Clear,
+            contentDescription = "No reminders",
+            tint = Blue,
+            modifier = Modifier.size(48.dp)
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "No Reminders Yet",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Add your first reminder by tapping the + button",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 32.dp)
+        )
+    }
 }

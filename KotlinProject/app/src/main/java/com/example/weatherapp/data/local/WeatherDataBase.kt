@@ -4,11 +4,14 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
+import com.example.weatherapp.Utils.converters.Converters
 import com.example.weatherapp.data.models.City
 import com.example.weatherapp.data.models.Reminder
 
 
 @Database(entities = [City::class, Reminder::class], version = 3)
+@TypeConverters(Converters::class)
 abstract class WeatherDataBase : RoomDatabase()  {
     abstract fun getWeatherDao(): WeatherDao
     abstract fun getReminderDao(): ReminderDao
@@ -24,6 +27,5 @@ abstract class WeatherDataBase : RoomDatabase()  {
                 INSTANCE
             }
         }
-
     }
 }

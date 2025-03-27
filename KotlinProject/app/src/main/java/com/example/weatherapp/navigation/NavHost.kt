@@ -28,6 +28,8 @@ import com.example.weatherapp.data.repo.RepoImpl
 import com.example.weatherapp.features.map.viewmodel.MapViewModel
 import com.example.weatherapp.features.map.viewmodel.MapViewModelFactory
 import com.example.weatherapp.features.alerts.view.AlertsScreen
+import com.example.weatherapp.features.alerts.viewmodel.AlertViewModel
+import com.example.weatherapp.features.alerts.viewmodel.AlertViewModelFactory
 import com.example.weatherapp.features.favorites.view.FavoritesDetailsScreen
 import com.example.weatherapp.features.search.view.SearchScreen
 import com.example.weatherapp.features.search.viewmodel.SearchViewModel
@@ -44,7 +46,11 @@ fun SetUpNavHost(navController: NavHostController, paddingValues: PaddingValues)
             DetailsViewModelFactory(
                 RepoImpl(
                     RemoteDataSourceImpl(RetrofitHelper.service),
-                    LocalDataSourceImpl(WeatherDataBase.getInstance(context).getWeatherDao()),
+                    LocalDataSourceImpl(
+                        WeatherDataBase.getInstance(context).getWeatherDao(),
+                        WeatherDataBase.getInstance(context).getReminderDao()
+                    ),
+
                 )
             )
         }
@@ -66,7 +72,9 @@ fun SetUpNavHost(navController: NavHostController, paddingValues: PaddingValues)
                         RepoImpl(
                             RemoteDataSourceImpl(RetrofitHelper.service),
                             LocalDataSourceImpl(
-                                WeatherDataBase.getInstance(context).getWeatherDao()
+                                WeatherDataBase.getInstance(context).getWeatherDao(),
+                                WeatherDataBase.getInstance(context).getReminderDao()
+
                             ),
                         )
                     )
@@ -98,7 +106,9 @@ fun SetUpNavHost(navController: NavHostController, paddingValues: PaddingValues)
                         RepoImpl(
                             RemoteDataSourceImpl(RetrofitHelper.service),
                             LocalDataSourceImpl(
-                                WeatherDataBase.getInstance(context).getWeatherDao()
+                                WeatherDataBase.getInstance(context).getWeatherDao(),
+                                WeatherDataBase.getInstance(context).getReminderDao()
+
                             ),
 
                             )
@@ -118,7 +128,9 @@ fun SetUpNavHost(navController: NavHostController, paddingValues: PaddingValues)
                         RepoImpl(
                             RemoteDataSourceImpl(RetrofitHelper.service),
                             LocalDataSourceImpl(
-                                WeatherDataBase.getInstance(context).getWeatherDao()
+                                WeatherDataBase.getInstance(context).getWeatherDao(),
+                                WeatherDataBase.getInstance(context).getReminderDao()
+
                             ),
 
                             )
@@ -134,7 +146,8 @@ fun SetUpNavHost(navController: NavHostController, paddingValues: PaddingValues)
                         RepoImpl(
                             RemoteDataSourceImpl(RetrofitHelper.service),
                             LocalDataSourceImpl(
-                                WeatherDataBase.getInstance(context).getWeatherDao()
+                                WeatherDataBase.getInstance(context).getWeatherDao(),
+                                WeatherDataBase.getInstance(context).getReminderDao()
                             ),
                         )
                     )
@@ -142,7 +155,19 @@ fun SetUpNavHost(navController: NavHostController, paddingValues: PaddingValues)
             SearchScreen(searchViewModel)
         }
         composable<ScreenRoutes.AlertsScreen> {
-            AlertsScreen()
+            val alertsViewModel: AlertViewModel = viewModel(
+                factory = remember {
+                    AlertViewModelFactory(
+                        RepoImpl(
+                            RemoteDataSourceImpl(RetrofitHelper.service),
+                            LocalDataSourceImpl(
+                                WeatherDataBase.getInstance(context).getWeatherDao(),
+                                WeatherDataBase.getInstance(context).getReminderDao()
+                            ),
+                        ),
+                    )
+                })
+            AlertsScreen(alertsViewModel)
         }
         composable<ScreenRoutes.MapScreenFromNavBar> {
             val mapViewModel: MapViewModel = viewModel(
@@ -152,7 +177,8 @@ fun SetUpNavHost(navController: NavHostController, paddingValues: PaddingValues)
                         RepoImpl(
                             RemoteDataSourceImpl(RetrofitHelper.service),
                             LocalDataSourceImpl(
-                                WeatherDataBase.getInstance(context).getWeatherDao()
+                                WeatherDataBase.getInstance(context).getWeatherDao(),
+                                WeatherDataBase.getInstance(context).getReminderDao()
                             ),
                         ),
                         )

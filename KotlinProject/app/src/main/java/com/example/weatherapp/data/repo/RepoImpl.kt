@@ -62,9 +62,11 @@ class RepoImpl(
     }
 
     override fun getAllReminders(): Flow<List<Reminder>> {
-return localDataSource.getAllReminders()    }
+        return localDataSource.getAllReminders()
+    }
 
-    override suspend fun deleteReminder(reminder: Reminder) {
-return localDataSource.deleteReminder(reminder)        }
+    override suspend fun deleteReminder(reminderId: Int) {
+        return localDataSource.deleteReminder(reminderId)
+    }
 
 }

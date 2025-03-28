@@ -472,7 +472,6 @@ fun FutureDyItemCard(item: WeatherResponse) {
 
 
 
-@Composable
 fun getDrawableResourceId(picPath: String?): Int {
     return when (picPath) {
         "Clear" -> R.drawable.sunny

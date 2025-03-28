@@ -2,6 +2,8 @@ package com.example.weatherapp.Utils
 
 import android.app.Application
 import android.content.Context
+import androidx.work.Configuration
+import androidx.work.WorkManager
 import com.example.weatherapp.Utils.sharedprefrences.sharedPreferencesUtils
 import com.example.weatherapp.data.sharedPrefrences.SharedPreferencesDataSource
 

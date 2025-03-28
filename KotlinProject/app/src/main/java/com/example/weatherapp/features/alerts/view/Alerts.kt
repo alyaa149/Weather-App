@@ -1,6 +1,7 @@
 package com.example.weatherapp.features.alerts.view
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
@@ -57,6 +58,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.weatherapp.R
 import com.example.weatherapp.Response
+import com.example.weatherapp.Utils.constants.AppStrings
+import com.example.weatherapp.Utils.sharedprefrences.sharedPreferencesUtils
 import com.example.weatherapp.data.models.Reminder
 import com.example.weatherapp.features.alerts.viewmodel.AlertViewModel
 import com.example.weatherapp.features.favorites.view.LocationItem
@@ -130,7 +133,16 @@ fun AlertsScreen(viewModel: AlertViewModel) {
                         sheetState = sheetState,
                         onDismiss = { isSheetOpen = false },
                         onConfirm = { time, type ->
-                            viewModel.addAlert(Reminder(time = time, type = type), snackbarHostState, coroutineScope)
+                            val reminder = Reminder(time = time, type = type)
+                            viewModel.addAlert(reminder, snackbarHostState, coroutineScope)
+                            Log.i("response", "Calling addAlert with time outside if: $time, type: $type")
+//                            if(type == "NOTIFICATION") {
+//                                viewModel.scheduleNotification(reminder,
+//                                    sharedPreferencesUtils.getData("LATITUDE") ?: "0.0",
+//                                    sharedPreferencesUtils.getData("LONGITUDE") ?: "0.0")
+//                                Log.i("response", "Calling scheduleNotification with lat: ${sharedPreferencesUtils.getData("LATITUDE")}, lon: ${sharedPreferencesUtils.getData("LONGITUDE") ?: "0.0"}")
+//
+//                            }
                             isSheetOpen = false
                         }
                     )

@@ -91,9 +91,7 @@ fun SearchScreen(viewModel: SearchViewModel) {
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-//            items(filteredCities) { city ->
-//                CityItem(city)
-//            }
+
         }
     }
 }

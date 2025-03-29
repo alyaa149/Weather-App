@@ -14,6 +14,8 @@ interface Repo {
     suspend fun insertWeather(city: City):Long
     suspend fun deleteWeather(city: City):Int
     fun getAllFavs(): Flow<List<City>>
+    fun getWeatherFromLatLonOffline(lat: Double, lon: Double): Flow<City>
+    suspend fun updateWeather(lat: Double, lon: Double, weatherResponse: WeatherResponse)
     //Reminder
     suspend fun insertReminder(reminder: Reminder):Long
     fun getAllReminders(): Flow<List<Reminder>>

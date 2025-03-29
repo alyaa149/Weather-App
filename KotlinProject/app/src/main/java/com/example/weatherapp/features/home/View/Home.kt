@@ -41,6 +41,9 @@ import com.example.weatherapp.features.home.ViewModel.DetailsViewModel
 import com.example.weatherapp.R
 import com.example.weatherapp.Response
 import com.example.weatherapp.Utils.constants.AppStrings
+import com.example.weatherapp.Utils.formatDateTime
+import com.example.weatherapp.Utils.getDrawableResourceId
+import com.example.weatherapp.Utils.getUnit
 import com.example.weatherapp.Utils.sharedprefrences.sharedPreferencesUtils
 import com.example.weatherapp.data.models.WeatherResponse
 import com.example.weatherapp.ui.theme.BabyBlue
@@ -348,15 +351,7 @@ fun HourlyForecast(forecastResponse: List<WeatherResponse>) {
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
-fun formatDateTime(dtTxt: String?) :String? {
-    val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-    val outputFormatter = DateTimeFormatter.ofPattern("h:mm a")
 
-    val dateTime = LocalDateTime.parse(dtTxt, inputFormatter)
-return  dateTime.format(outputFormatter)
-
-}
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -468,31 +463,6 @@ fun FutureDyItemCard(item: WeatherResponse) {
 
     }
 
-
-
-
-
-fun getDrawableResourceId(picPath: String?): Int {
-    return when (picPath) {
-        "Clear" -> R.drawable.sunny
-        "Clouds" -> R.drawable.cloudy
-        "Rain" -> R.drawable.rainy
-        "Snow" -> R.drawable.snowy
-        "storm" -> R.drawable.storm
-        else -> R.drawable.back
-    }
-}
-fun getUnit():String{
-    if(sharedPreferencesUtils.getData(AppStrings().TEMPUNITKEY) == AppStrings().CELSIUSKEY) {
-        return "C"
-    }
-    else if(sharedPreferencesUtils.getData(AppStrings().TEMPUNITKEY) == AppStrings().FAHRENHEITKEY){
-       return "F"
-    }
-    else{
-        return "K"
-    }
-}
 
 @Composable
 fun LoadingIndicator() {

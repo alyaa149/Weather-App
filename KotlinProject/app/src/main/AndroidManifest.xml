@@ -9,6 +9,12 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+
+
 
 
     <application
@@ -25,6 +31,12 @@
         tools:targetApi="31"
 
         >
+        <receiver android:name=".features.alerts.notificationnsandalerts.WeatherAlertReceiver"
+            android:exported="false"/>
+        <service android:name=".features.alerts.notificationnsandalerts.WeatherAlertService"
+            android:permission="android.permission.FOREGROUND_SERVICE"/>
+
+
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="${applicationId}.androidx-startup"
@@ -35,7 +47,7 @@
         </provider>
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyCaj10hgcwGaosoYRyv79ppLviFJ9eMNmM" />
+            android:value="AIzaSyASPTItqNeWifC1NO4nUdCwQ-fLHeg-lx4" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

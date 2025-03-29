@@ -10,7 +10,7 @@ import com.example.weatherapp.data.models.City
 import com.example.weatherapp.data.models.Reminder
 
 
-@Database(entities = [City::class, Reminder::class], version = 3)
+@Database(entities = [City::class, Reminder::class], version = 4)
 @TypeConverters(Converters::class)
 abstract class WeatherDataBase : RoomDatabase()  {
     abstract fun getWeatherDao(): WeatherDao

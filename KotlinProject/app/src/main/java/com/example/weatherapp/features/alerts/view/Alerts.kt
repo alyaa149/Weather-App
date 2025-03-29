@@ -4,6 +4,7 @@ import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -39,6 +40,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
@@ -59,6 +61,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.weatherapp.R
 import com.example.weatherapp.Response
 import com.example.weatherapp.Utils.constants.AppStrings
+import com.example.weatherapp.Utils.formatTime
 import com.example.weatherapp.Utils.sharedprefrences.sharedPreferencesUtils
 import com.example.weatherapp.data.models.Reminder
 import com.example.weatherapp.features.alerts.viewmodel.AlertViewModel
@@ -136,13 +139,6 @@ fun AlertsScreen(viewModel: AlertViewModel) {
                             val reminder = Reminder(time = time, type = type)
                             viewModel.addAlert(reminder, snackbarHostState, coroutineScope)
                             Log.i("response", "Calling addAlert with time outside if: $time, type: $type")
-//                            if(type == "NOTIFICATION") {
-//                                viewModel.scheduleNotification(reminder,
-//                                    sharedPreferencesUtils.getData("LATITUDE") ?: "0.0",
-//                                    sharedPreferencesUtils.getData("LONGITUDE") ?: "0.0")
-//                                Log.i("response", "Calling scheduleNotification with lat: ${sharedPreferencesUtils.getData("LATITUDE")}, lon: ${sharedPreferencesUtils.getData("LONGITUDE") ?: "0.0"}")
-//
-//                            }
                             isSheetOpen = false
                         }
                     )
@@ -508,90 +504,53 @@ fun TimePickerSection(
         }
     }
 }
+
 @Composable
-fun ErrorState(
-    message: String,
-    onRetry: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-
-    Column(
-        modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+fun WeatherAlertOverlay(onDismiss: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f)) // Semi-transparent background
+            .clickable { onDismiss() }, // Close when clicked outside
+        contentAlignment = Alignment.Center
     ) {
-        Icon(
-            imageVector = Icons.Default.Warning,
-            contentDescription = "Error",
-            tint = MaterialTheme.colorScheme.error,
-            modifier = Modifier.size(48.dp),)
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-                    text = "Something went wrong",
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = Blue,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 32.dp)
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Button(
-            onClick = onRetry,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.errorContainer,
-                contentColor = MaterialTheme.colorScheme.onErrorContainer
+        Card(
+            modifier = Modifier
+                .padding(24.dp)
+                .fillMaxWidth()
+                .wrapContentHeight(),
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 8.dp
             )
         ) {
-            Text(text = "Try Again")
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Weather Alert!",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Red
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "The wind is strong! Stay safe.",
+                    fontSize = 16.sp,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Button(onClick = onDismiss) {
+                    Text("OK")
+                }
+            }
         }
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
-fun LocalTime.formatTime(): String {
-    val formatter = DateTimeFormatter.ofPattern("h:mm a")
-    return this.format(formatter)
-}
-@Composable
-fun EmptyStateUI(
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = Icons.Default.Clear,
-            contentDescription = "No reminders",
-            tint = Blue,
-            modifier = Modifier.size(48.dp)
-        )
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "No Reminders Yet",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = "Add your first reminder by tapping the + button",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 32.dp)
-        )
-    }
-}

@@ -1,6 +1,6 @@
 package com.example.weatherapp.Utils.constants
 
-class AppStrings {
+ class AppStrings {
     val SHARED_PREFRENCES_KEY = "WEATHERDATA"
     val LATITUDEKEY = "LATITUDE"
     val LONGITUDEKEY = "LONGITUDE"

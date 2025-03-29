@@ -81,8 +81,8 @@ fun SetUpNavHost(navController: NavHostController, paddingValues: PaddingValues)
                 }
             )
             FavLocUI(
-                navigateToFavDetails = { lon, lat ->
-                    navController.navigate(ScreenRoutes.FavDetailsScreen(lon, lat))
+                navigateToFavDetails = { lat, lon ->
+                    navController.navigate(ScreenRoutes.FavDetailsScreen(lat, lon))
                 },
                 favoritesViewModel,
                 navigateToMap = { navController.navigate(ScreenRoutes.MapScreenFromFavorites) }
@@ -93,7 +93,6 @@ fun SetUpNavHost(navController: NavHostController, paddingValues: PaddingValues)
                 detailsViewModel,
                 it.arguments?.getDouble("lat")!!,
                 it.arguments?.getDouble("lon")!!,
-                onBackClick = { navController.popBackStack() }
             )
         }
         composable<ScreenRoutes.SettingsScreen> {

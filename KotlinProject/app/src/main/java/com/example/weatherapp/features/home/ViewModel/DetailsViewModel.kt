@@ -7,8 +7,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.weatherapp.Response
+import com.example.weatherapp.Utils.NetworkUtils
 import com.example.weatherapp.Utils.constants.AppStrings
+import com.example.weatherapp.Utils.fetchCurrentTime
+import com.example.weatherapp.Utils.fetchformattedDateTime
 import com.example.weatherapp.Utils.sharedprefrences.sharedPreferencesUtils
+import com.example.weatherapp.data.models.City
 import com.example.weatherapp.data.models.WeatherResponse
 import com.example.weatherapp.data.repo.Repo
 import kotlinx.coroutines.Dispatchers
@@ -39,11 +43,6 @@ class DetailsViewModel(private val repo: Repo) : ViewModel() {
     private val _futureDays =MutableStateFlow<Response<List<WeatherResponse>>>(Response.Loading)
     val futureDays: StateFlow<Response<List<WeatherResponse>>> = _futureDays
 
-//    init {
-//        fetchWeatherFromLatLonUnitLang()
-//        getFutureWeatherForecast()
-//        getFutureDaysWeatherForecast()
-//    }
 
     @RequiresApi(Build.VERSION_CODES.O)
      fun getFutureDaysWeatherForecast(lat: Double, lon: Double) {
@@ -128,39 +127,33 @@ class DetailsViewModel(private val repo: Repo) : ViewModel() {
     }
 
      fun fetchWeatherFromLatLonUnitLang(lat: Double, lon: Double, ) {
-        viewModelScope.launch(Dispatchers.IO) {
-            _currentDetails.value = Response.Loading
-            try {
-                repo.fetchWeatherFromLatLonUnitLang(lat,lon,sharedPreferencesUtils.getData(AppStrings().TEMPUNITKEY) ?: "metric" ,sharedPreferencesUtils.getData(
-                    AppStrings().LANGUAGEKEY) ?: "en"
-                )
-                    .collect { response ->
-                        _currentDetails.value = Response.Success(response)
-                        Log.i("response","ellly 3ayzah ${response.toString()}")
-                    }
-            } catch (e: Exception) {
-                _currentDetails.value = Response.Failure(e)
-                Log.e("WeatherError", e.message.toString())
-            }
-        }
+         viewModelScope.launch(Dispatchers.IO) {
+             _currentDetails.value = Response.Loading
+             try {
+                 if (NetworkUtils.isNetworkAvailable()) {
+                     repo.fetchWeatherFromLatLonUnitLang(
+                         lat, lon,
+                         sharedPreferencesUtils.getData(AppStrings().TEMPUNITKEY) ?: "metric",
+                         sharedPreferencesUtils.getData(AppStrings().LANGUAGEKEY) ?: "en"
+                     ).collect { response ->
+                         _currentDetails.value = Response.Success(response)
+                       //  repo.updateWeather(lat, lon, response)
+                     }
+                 } else {
+                    repo.getWeatherFromLatLonOffline(lat, lon)
+                        .collect{
+                            _currentDetails.value = Response.Success(it.weatherResponse)
+                        }
+                 }
+             } catch (e: Exception) {
+                 _currentDetails.value = Response.Failure(e)
+             }
+         }
     }
 
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun fetchCurrentTime(): String {
-        val currentDateTime = LocalDateTime.now()
-        val formattedDateTime = currentDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-        val currentDay: DayOfWeek = currentDateTime.dayOfWeek
-        val dayName = currentDay.name.lowercase().replaceFirstChar { it.uppercase() }
-        return "$dayName, $formattedDateTime"
-    }
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun fetchformattedDateTime() : String{
-        val currentDateTime = LocalDateTime.now()
-        val formattedDateTime = currentDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-        return formattedDateTime
 
-    }
+
 }
 
 

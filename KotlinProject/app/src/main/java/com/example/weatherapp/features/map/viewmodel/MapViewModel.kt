@@ -8,13 +8,18 @@ import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.weatherapp.Response
 import com.example.weatherapp.Utils.AppContext
+import com.example.weatherapp.Utils.constants.AppStrings
+import com.example.weatherapp.Utils.sharedprefrences.sharedPreferencesUtils
 import com.example.weatherapp.data.models.City
+import com.example.weatherapp.data.models.WeatherResponse
 import com.example.weatherapp.data.repo.Repo
 import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
@@ -31,6 +36,8 @@ class MapViewModel(private val repo: Repo) : ViewModel() {
     private val _searchedLocation = MutableStateFlow<LatLng?>(null)
     private val _searchResults = MutableStateFlow<List<Address>>(emptyList())
     private val _updatedAddress = MutableStateFlow<String?>(null)
+    private val _currentDetails = MutableStateFlow<Response<WeatherResponse>>(Response.Loading)
+    val currentDetails: StateFlow<Response<WeatherResponse>> = _currentDetails
 
     val searchedLocation = _searchedLocation.asStateFlow()
     val searchResults = _searchResults.asStateFlow()
@@ -40,6 +47,33 @@ class MapViewModel(private val repo: Repo) : ViewModel() {
         observeSearchFlow()
     }
 
+
+    fun fetchWeatherAndInsert(lat: Double, lon: Double, address: String?) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _currentDetails.value = Response.Loading
+            try {
+                repo.fetchWeatherFromLatLonUnitLang(
+                    lat,
+                    lon,
+                    sharedPreferencesUtils.getData(AppStrings().TEMPUNITKEY) ?: "metric",
+                    sharedPreferencesUtils.getData(AppStrings().LANGUAGEKEY) ?: "en"
+                ).collectLatest { response ->  //Cancels previous collections
+                    _currentDetails.value = Response.Success(response)
+                    insertWeather(
+                        City(
+                            address = address ?: "Unknown",
+                            lat = lat,
+                            lon = lon,
+                            weatherResponse = response
+                        )
+                    )
+                }
+            } catch (e: Exception) {
+                _currentDetails.value = Response.Failure(e)
+                Log.e("WeatherError", e.message.toString())
+            }
+        }
+    }
     private fun observeSearchFlow() {
         viewModelScope.launch {
             _searchFlow
@@ -68,12 +102,10 @@ class MapViewModel(private val repo: Repo) : ViewModel() {
 
                 if (addresses.isNotEmpty()) {
                     _searchResults.value = addresses
-                    // Auto-select first result if only one
                     if (addresses.size == 1) {
                         _searchedLocation.value = addresses.first().toLatLng()
                     }
                 } else {
-                    // Fallback to broader search
                     val fallbackQuery = query.split(",").first().trim()
                     geocoder.getFromLocationName(fallbackQuery, 1)?.firstOrNull()?.let {
                         _searchedLocation.value = it.toLatLng()
@@ -114,6 +146,7 @@ class MapViewModel(private val repo: Repo) : ViewModel() {
             }
         }
     }
+
 
     private fun Address.toLatLng() = LatLng(latitude, longitude)
     private fun Address.getFullAddress(): String {

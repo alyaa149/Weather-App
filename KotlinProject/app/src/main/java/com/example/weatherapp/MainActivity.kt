@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
+import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Toast
@@ -55,11 +56,24 @@ import androidx.compose.material3.*
 import com.google.android.gms.location.LocationServices
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.drawscope.Fill
+import androidx.compose.ui.tooling.preview.Preview
+import com.example.weatherapp.Utils.AppContext
+import com.example.weatherapp.features.alerts.notificationnsandalerts.AlarmManager
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+
 
 class MainActivity : ComponentActivity() {
     public val REQUEST_LOCATION_CODE = 2005
@@ -78,8 +92,35 @@ class MainActivity : ComponentActivity() {
                     LocationManager.GPS_PROVIDER
                 )
             ) }
-            AppNavigation()
+//            AppNavigation()
+            Column(modifier = Modifier.padding(16.dp)) {
+                AlarmIndicatorUI(
+                    alarmTime = LocalTime.of(7, 30),
+                    isActive = true,
+                    onToggle = {},
+                    onEdit = {},
+                    onDismiss = {},
+alarmManager = AlarmManager()                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                AlarmIndicatorUI(
+                    alarmTime = LocalTime.of(9, 15),
+                    isActive = false,
+                    onToggle = {},
+                    onEdit = {},
+                    onDismiss = {},
+alarmManager = AlarmManager()                )
+            }
+
         }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(AppContext.getContext())) {
+            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:${AppContext.getContext().packageName}"))
+            AppContext.getContext().startActivity(intent)
+        }
+
+        val alarmManager = AlarmManager()
     }
 
     override fun onStart() {
@@ -301,5 +342,164 @@ fun AppNavigation() {
         }
     ) { paddingValues ->
         SetUpNavHost(navController, paddingValues)
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun AlarmIndicatorUI(
+    alarmTime: LocalTime,
+    isActive: Boolean,
+    onToggle: (Boolean) -> Unit,
+    onEdit: () -> Unit,
+    onDismiss: () -> Unit,
+    alarmManager: AlarmManager
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+    val animatedHeight by animateDpAsState(
+        targetValue = if (isExpanded) 200.dp else 100.dp,
+        animationSpec = tween(durationMillis = 300)
+    )
+
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isActive) MaterialTheme.colorScheme.primaryContainer
+        else MaterialTheme.colorScheme.surfaceVariant,
+        animationSpec = tween(durationMillis = 200)
+    )
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(animatedHeight)
+            .padding(8.dp),
+        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable { isExpanded = !isExpanded }
+                .padding(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Notifications,
+                    contentDescription = "Alarm",
+                    modifier = Modifier.size(32.dp),
+                    tint = if (isActive) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // Time display
+                Column {
+                    Text(
+                        text = "Alarm",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = alarmTime.format(DateTimeFormatter.ofPattern("hh:mm a")),
+                        style = MaterialTheme.typography.displaySmall,
+                        color = if (isActive) MaterialTheme.colorScheme.onPrimaryContainer
+                        else MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                // Toggle switch
+                Switch(
+                    checked = isActive,
+                    onCheckedChange = onToggle,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                        checkedTrackColor = MaterialTheme.colorScheme.primary,
+                        uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
+
+
+                )
+            }
+
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Expanded controls
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Edit button
+                    FilledTonalButton(
+                        onClick = onEdit,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Edit")
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    // Dismiss button
+                    FilledTonalButton(
+                        onClick = onDismiss,
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        ),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.Clear, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Dismiss")
+                    }
+                }
+
+                // Optional: Repeat days indicator
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Repeats: Weekdays",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+// Preview
+@RequiresApi(Build.VERSION_CODES.O)
+@Preview
+@Composable
+fun AlarmIndicatorUIPreview() {
+    MaterialTheme {
+        Column(modifier = Modifier.padding(16.dp)) {
+            AlarmIndicatorUI(
+                alarmTime = LocalTime.of(7, 30),
+                isActive = true,
+                onToggle = {},
+                onEdit = {},
+                onDismiss = {},
+                alarmManager = AlarmManager()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            AlarmIndicatorUI(
+                alarmTime = LocalTime.of(9, 15),
+                isActive = false,
+                onToggle = {},
+                onEdit = {},
+                onDismiss = {},
+                alarmManager = AlarmManager()
+            )
+        }
     }
 }

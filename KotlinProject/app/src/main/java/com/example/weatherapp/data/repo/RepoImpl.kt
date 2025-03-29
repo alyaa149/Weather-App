@@ -69,4 +69,12 @@ class RepoImpl(
         return localDataSource.deleteReminder(reminderId)
     }
 
+    override fun getWeatherFromLatLonOffline(lat: Double, lon: Double): Flow<City> {
+        return localDataSource.getWeatherFromLatLonOffline(lat, lon)
+    }
+
+    override suspend fun updateWeather(lat: Double, lon: Double, weatherResponse: WeatherResponse) {
+         localDataSource.updateWeather(lat, lon, weatherResponse)
+    }
+
 }

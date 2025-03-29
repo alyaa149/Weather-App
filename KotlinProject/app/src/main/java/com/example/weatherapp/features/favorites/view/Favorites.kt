@@ -31,10 +31,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -45,6 +48,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.weatherapp.R
 import com.example.weatherapp.Response
+import com.example.weatherapp.Utils.NetworkUtils
 import com.example.weatherapp.features.home.View.FutureDaysForecast
 import com.example.weatherapp.features.home.View.HourlyForecast
 import com.example.weatherapp.features.home.View.LoadingIndicator
@@ -64,6 +68,9 @@ fun FavLocUI(
     navigateToMap: () -> Unit
 ) {
     val favoriteLocations by viewModel.favoriteLocations.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val eventFlow = viewModel.eventFlow
+    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         floatingActionButton = {
@@ -76,18 +83,31 @@ fun FavLocUI(
                     tint = Blue
                 )
             }
-        }
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+
     ) { padding ->
         LazyColumn(modifier = Modifier.padding(padding)) {
-            items(favoriteLocations) { location ->
-                LocationItem(
-                    location = location,
-                    onRemove = { viewModel.deleteWeather(location) },
-                    onClick = { lon, lat ->
-                        navigateToFavDetails(lat, lon)
+            when (val favoritesState = favoriteLocations) {
+                is Response.Loading -> {
+                    item { LoadingIndicator() }
+                }
+                is Response.Success -> {
+                    items(favoritesState.data) { location ->  // Now using .data which is List<City>
+                        LocationItem(
+                            location = location,
+                            onRemove = { viewModel.deleteWeather(location, snackbarHostState, coroutineScope) },
+                            onClick = { lat, lon ->
+                                navigateToFavDetails(lat, lon)
+                            }
+                        )
                     }
-                )
-
+                }
+                is Response.Failure -> {
+                    item {
+                        Text(text = "Error: ${favoritesState.message}")
+                    }
+                }
             }
         }
     }
@@ -104,7 +124,7 @@ fun LocationItem(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
-            .clickable { onClick(location.lon, location.lat) },
+            .clickable { onClick(location.lat, location.lon) },
         elevation = CardDefaults.cardElevation(
             defaultElevation = 8.dp
         ),
@@ -154,24 +174,22 @@ fun LocationItem(
 
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun FavoritesDetailsScreen(
     viewModel: DetailsViewModel,
     favoriteLat: Double,
     favoriteLon: Double,
-    onBackClick: () -> Unit
 ) {
     val uiState = viewModel.currentDetails.collectAsStateWithLifecycle().value
     val hourlyForecast = viewModel.nextHoursDetailsList.collectAsStateWithLifecycle().value
     val futureDays = viewModel.futureDays.collectAsStateWithLifecycle().value
     val currentDate = viewModel.currentDate
-
     LaunchedEffect(Unit) {
-        viewModel.fetchWeatherFromLatLonUnitLang(favoriteLat, favoriteLon)
-        viewModel.getFutureWeatherForecast(favoriteLat, favoriteLon)
-        viewModel.getFutureDaysWeatherForecast(favoriteLat, favoriteLon)
+        viewModel.fetchWeatherFromLatLonUnitLang(favoriteLon, favoriteLat)
+            viewModel.getFutureWeatherForecast(favoriteLon, favoriteLat)
+            viewModel.getFutureDaysWeatherForecast(favoriteLon, favoriteLat)
+
     }
 
     Box(
@@ -196,7 +214,7 @@ fun FavoritesDetailsScreen(
                         WeatherDetails(weatherData)
                         Log.i(
                             "response",
-                            "from fav ,, Latitude in fav details: ${favoriteLat}, Longitude: $favoriteLon"
+                            "from fav ,, Latitude in fav details: ${favoriteLon}, Longitude: $favoriteLat"
                         )
                     }
 
@@ -212,7 +230,6 @@ fun FavoritesDetailsScreen(
                         HourlyForecast(forecastData)
                         Log.i("response", "in favHome Latitude: $forecastData")
                     }
-
                     is Response.Failure -> {
                         Log.e("WeatherError", hourlyForecast.message.message.toString())
                     }

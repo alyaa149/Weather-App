@@ -24,6 +24,7 @@ import com.example.weatherapp.data.repo.Repo
 import com.example.weatherapp.data.repo.RepoImpl
 import com.example.weatherapp.features.alerts.notificationnsandalerts.NotificationWorker
 import com.example.weatherapp.features.alerts.notificationnsandalerts.WeatherAlertReceiver
+import com.example.weatherapp.features.alerts.notificationnsandalerts.WeatherAlertScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -104,11 +105,7 @@ class AlertViewModel(private val repo: Repo) : ViewModel() {
                         if (reminder.type == "NOTIFICATION") {
                             scheduleNotification(reminder)
                         } else {
-                            setWeatherAlert(
-                                reminder.time.atZone(ZoneId.systemDefault()).toInstant()
-                                    .toEpochMilli()
-                            )
-
+                         //   scheduler.scheduleWeatherAlert(reminder)
                         }
                     }
                 }
@@ -163,10 +160,10 @@ class AlertViewModel(private val repo: Repo) : ViewModel() {
     fun scheduleNotification(reminder: Reminder) {
         val now = LocalDateTime.now()
         val duration = Duration.between(now, reminder.time).toMillis()
-        Log.i("AlertViewModel", "Scheduling notification: Duration = $duration ms")
+        Log.i("response", "Scheduling notification: Duration = $duration ms")
 
         if (duration <= 0) {
-            Log.e("AlertViewModel", "Scheduled time is in the past. Skipping notification.")
+            Log.e("response", "Scheduled time is in the past. Skipping notification.")
             return
         }
         val data = workDataOf(
@@ -183,23 +180,13 @@ class AlertViewModel(private val repo: Repo) : ViewModel() {
         workManager.enqueue(notificationRequest)
         Log.i("response", "Notification scheduled successfully. ${fetchCurrentTime()}")
     }
+
+    private val scheduler = WeatherAlertScheduler()
+
+
 }
 
-fun setWeatherAlert(triggerTime: Long) {
-    val context = AppContext.getContext()
-    val intent = Intent(context, WeatherAlertReceiver::class.java)
-    val pendingIntent = PendingIntent.getBroadcast(
-        context,
-        0,
-        intent,
-        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-    )
 
-    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
-
-    Log.i("AlarmManager", "Weather alert set for: $triggerTime")
-}
 
 
 

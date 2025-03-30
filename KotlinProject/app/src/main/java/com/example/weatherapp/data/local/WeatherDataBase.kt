@@ -8,9 +8,10 @@ import androidx.room.TypeConverters
 import com.example.weatherapp.Utils.converters.Converters
 import com.example.weatherapp.data.models.City
 import com.example.weatherapp.data.models.Reminder
+import com.example.weatherapp.data.models.WeatherInHomeUsingRoom
 
 
-@Database(entities = [City::class, Reminder::class], version = 4)
+@Database(entities = [City::class, Reminder::class, WeatherInHomeUsingRoom::class], version = 8)
 @TypeConverters(Converters::class)
 abstract class WeatherDataBase : RoomDatabase()  {
     abstract fun getWeatherDao(): WeatherDao

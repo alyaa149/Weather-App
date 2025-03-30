@@ -83,6 +83,9 @@ dependencies {
     implementation("com.google.accompanist:accompanist-permissions:0.33.2-alpha")
     implementation("com.google.android.libraries.places:places:3.4.0")
 
+    //lottie
+    implementation ("com.airbnb.android:lottie:6.3.0")
+
 
 
 

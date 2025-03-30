@@ -14,12 +14,22 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -40,6 +50,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.weatherapp.features.home.ViewModel.DetailsViewModel
 import com.example.weatherapp.R
 import com.example.weatherapp.Response
+import com.example.weatherapp.Utils.NetworkUtils
 import com.example.weatherapp.Utils.constants.AppStrings
 import com.example.weatherapp.Utils.formatDateTime
 import com.example.weatherapp.Utils.getDrawableResourceId
@@ -49,80 +60,128 @@ import com.example.weatherapp.data.models.WeatherResponse
 import com.example.weatherapp.ui.theme.BabyBlue
 import com.example.weatherapp.ui.theme.Blue
 import com.example.weatherapp.ui.theme.Roze
+import com.google.android.gms.common.util.SharedPreferencesUtils
+import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun HomeWeatherScreen(viewModel: DetailsViewModel) {
+fun HomeWeatherScreen(
+    viewModel: DetailsViewModel,
+) {
     val uiState = viewModel.currentDetails.collectAsStateWithLifecycle().value
-    val hourlyForecast = viewModel.nextHoursDetailsList.collectAsStateWithLifecycle().value
+    val hourlyForecast = viewModel.nextHoursDetails.collectAsStateWithLifecycle().value
     val futureDays = viewModel.futureDays.collectAsStateWithLifecycle().value
     val currentDate = viewModel.currentDate
 
-    LaunchedEffect(Unit) {
-        val lat = sharedPreferencesUtils.getData(AppStrings().LATITUDEKEY)?.toDouble() ?: 0.0
-        val lon = sharedPreferencesUtils.getData(AppStrings().LONGITUDEKEY)?.toDouble() ?: 0.0
+    val snackbarHostState = remember { SnackbarHostState() }
+    if (!NetworkUtils.isNetworkAvailable()) {
+        LaunchedEffect(snackbarHostState) {
+            snackbarHostState.showSnackbar("No internet connection")
+        }
 
-        viewModel.fetchWeatherFromLatLonUnitLang(lat, lon,)
-        viewModel.getFutureWeatherForecast(lat, lon)
-        viewModel.getFutureDaysWeatherForecast(lat, lon)
     }
 
+    val scope = rememberCoroutineScope()
+    var showError by remember { mutableStateOf<String?>(null) }
 
+    LaunchedEffect(Unit) {
+        try {
+            val lat = sharedPreferencesUtils.getData(AppStrings().LATITUDEKEY)?.toDouble() ?: 0.0
+            val lon = sharedPreferencesUtils.getData(AppStrings().LONGITUDEKEY)?.toDouble() ?: 0.0
+            viewModel.loadWeatherData(lat, lon)
+        } catch (e: Exception) {
+            showError = e.message ?: "Failed to load weather data"
+        }
+    }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(Color.White,Blue)
+    // Show error dialog if needed
+    showError?.let { error ->
+        AlertDialog(
+            onDismissRequest = { showError = null },
+            title = { Text("Error") },
+            text = { Text(error) },
+            confirmButton = {
+                Button(onClick = {
+                    scope.launch {
+                        try {
+                            val lat = sharedPreferencesUtils.getData(AppStrings().LATITUDEKEY)?.toDouble() ?: 0.0
+                            val lon = sharedPreferencesUtils.getData(AppStrings().LONGITUDEKEY)?.toDouble() ?: 0.0
+                            viewModel.loadWeatherData(lat, lon)
+                            showError = null
+                        } catch (e: Exception) {
+                            showError = e.message ?: "Failed to load weather data"
+                        }
+                    }
+                }) {
+                    Text("Retry")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showError = null }) {
+                    Text("Dismiss")
+                }
+            }
+        )
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(Color.White, Blue)
+                    )
                 )
-            )
-    ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(padding)
         ) {
-            item {
-                when (uiState) {
-                    is Response.Loading -> LoadingIndicator()
-                    is Response.Success -> {
-                        val weatherData = uiState.data
-                        WeatherCard(weatherData, currentDate)
-                        WeatherDetails(weatherData)
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                item {
+                    when (uiState) {
+                        is Response.Loading -> LoadingIndicator()
+                        is Response.Success -> {
+                            val weatherData = uiState.data
+                            WeatherCard(weatherData, currentDate)
+                            WeatherDetails(weatherData)
+                        }
+                        is Response.Failure -> {
+                            // Error is handled with Snackbar
+                        }
                     }
-                    is Response.Failure -> {
-                        Log.e("WeatherError", uiState.message.message.toString())
+                }
+
+                item {
+                    when (hourlyForecast) {
+                        is Response.Loading -> LoadingIndicator()
+                        is Response.Success -> {
+                            val forecastData = hourlyForecast.data
+                            SectionTitle(stringResource(R.string.next_hours))
+                            HourlyForecast(forecastData)
+                        }
+                        is Response.Failure -> {
+                            // Error is handled with Snackbar
+                        }
                     }
                 }
 
-            }
-
-            item {
-                when (hourlyForecast) {
-                    is Response.Loading -> LoadingIndicator()
-                    is Response.Success -> {
-                        val forecastData = hourlyForecast.data
-                        SectionTitle(stringResource(R.string.next_hours))
-                        HourlyForecast(forecastData)
-                    }
-                    is Response.Failure -> {
-                        Log.e("WeatherError", hourlyForecast.message.message.toString())
-                    }
-                }
-            }
-
-            item {
-                when (futureDays) {
-                    is Response.Loading -> LoadingIndicator()
-                    is Response.Success -> {
-                        val forecastData = futureDays.data
-                        SectionTitle(stringResource(R.string.future_days))
-                        FutureDaysForecast(forecastData)
-                    }
-                    is Response.Failure -> {
-                        Log.e("WeatherError", futureDays.message.message.toString())
+                item {
+                    when (futureDays) {
+                        is Response.Loading -> LoadingIndicator()
+                        is Response.Success -> {
+                            val forecastData = futureDays.data
+                            SectionTitle(stringResource(R.string.future_days))
+                            FutureDaysForecast(forecastData)
+                        }
+                        is Response.Failure -> {
+                            // Error is handled with Snackbar
+                        }
                     }
                 }
             }
@@ -169,7 +228,7 @@ fun WeatherCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(300.dp)
-                .padding(top = 70.dp),
+                .padding(top = 50.dp),
             shape = RoundedCornerShape(16.dp),
             elevation = CardDefaults.elevatedCardElevation(8.dp),
             colors = CardDefaults.cardColors( Color(0xFFFAE6F9))

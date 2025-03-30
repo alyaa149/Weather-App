@@ -2,6 +2,8 @@ package com.example.weatherapp.data.local
 
 import com.example.weatherapp.data.models.City
 import com.example.weatherapp.data.models.Reminder
+import com.example.weatherapp.data.models.WeatherForecastResponse
+import com.example.weatherapp.data.models.WeatherInHomeUsingRoom
 import com.example.weatherapp.data.models.WeatherResponse
 import kotlinx.coroutines.flow.Flow
 
@@ -16,6 +18,10 @@ interface LocalDataSource {
     suspend fun deleteReminder(reminderId: Int)
     fun getWeatherFromLatLonOffline(lat: Double, lon: Double): Flow<City>
     suspend fun updateWeather(lat: Double, lon: Double, weatherResponse: WeatherResponse)
+    fun getAllDetailsWeatherFromLatLonHome(lat: Double, lon: Double): Flow<WeatherInHomeUsingRoom?>
+    suspend fun updateWeatherHome(lat: Double, lon: Double, weatherResponse: WeatherResponse?, weatherForecastResponse: WeatherForecastResponse?)
+    suspend fun insertWeatherHome(weather: WeatherInHomeUsingRoom):Long
+
 
 
 

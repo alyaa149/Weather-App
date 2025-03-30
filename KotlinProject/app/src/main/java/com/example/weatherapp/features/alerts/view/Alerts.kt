@@ -32,7 +32,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.weatherapp.ui.theme.Blue
@@ -42,30 +41,27 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.lifecycle.viewmodel.compose.viewModel
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.weatherapp.R
 import com.example.weatherapp.Response
-import com.example.weatherapp.Utils.constants.AppStrings
 import com.example.weatherapp.Utils.formatTime
-import com.example.weatherapp.Utils.sharedprefrences.sharedPreferencesUtils
 import com.example.weatherapp.data.models.Reminder
 import com.example.weatherapp.features.alerts.viewmodel.AlertViewModel
-import com.example.weatherapp.features.favorites.view.LocationItem
 import com.example.weatherapp.features.home.View.LoadingIndicator
 import com.example.weatherapp.ui.theme.Roze
 import java.time.Instant
@@ -73,7 +69,6 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -87,9 +82,8 @@ fun AlertsScreen(viewModel: AlertViewModel) {
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
-        eventFlow.collect {
-            message ->
-                snackbarHostState.showSnackbar(message)
+        eventFlow.collect { message ->
+            snackbarHostState.showSnackbar(message)
         }
     }
     Scaffold(
@@ -104,21 +98,36 @@ fun AlertsScreen(viewModel: AlertViewModel) {
                     tint = Blue
                 )
             }
-        } ,
+        },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { padding ->
-        Box(modifier = Modifier.padding(padding)) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentAlignment = Alignment.Center
+        ) {
             when (val reminders = viewModel.reminders.collectAsState().value) {
                 is Response.Loading -> {
                     LoadingIndicator()
                 }
                 is Response.Success -> {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(reminders.data) { reminder ->  // Safe access to .data
-                            AlertItem(
-                                reminder = reminder,
-                                onRemove = { viewModel.deleteAlert(reminder, snackbarHostState, coroutineScope) },
+                    if (reminders.data.isEmpty()) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            LottieAnimation(
+                                composition = rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.animation)).value,
+                                modifier = Modifier.size(200.dp)
                             )
+                            Text(text = stringResource(R.string.no_reminders_shown), style = MaterialTheme.typography.bodyLarge)
+                        }
+                    } else {
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            items(reminders.data) { reminder ->
+                                AlertItem(
+                                    reminder = reminder,
+                                    onRemove = { viewModel.deleteAlert(reminder, snackbarHostState, coroutineScope) },
+                                )
+                            }
                         }
                     }
                 }
@@ -145,7 +154,6 @@ fun AlertsScreen(viewModel: AlertViewModel) {
                 }
             }
         }
-
     }
 }
 
@@ -170,6 +178,15 @@ fun AlertItem(reminder: Reminder, onRemove: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            Image(
+                painter = if(reminder.type == "ALARM") painterResource(id = R.drawable.alert) else painterResource(id = R.drawable.not),
+                contentDescription = "Alert",
+                modifier = Modifier
+                    .size(30.dp)
+                    .fillMaxHeight()
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -262,10 +279,10 @@ fun PopUpAlert(
                             )
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Icon(
-                            imageVector = Icons.Default.Notifications,
+                        Image(
+                            painter =if (type == "ALARM") painterResource(id = R.drawable.alert) else painterResource(id = R.drawable.not),
                             contentDescription = type,
-                            tint = if (type == selectedReminderType) Blue else Color.Gray
+                            modifier = Modifier.size(25.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
@@ -360,7 +377,10 @@ fun DatePickerSection(
         }
     )
 
-    Column(modifier = Modifier.padding(5.dp).border(2.dp,Blue, shape = MaterialTheme.shapes.small).padding(10.dp)) {
+    Column(modifier = Modifier
+        .padding(5.dp)
+        .border(2.dp, Blue, shape = MaterialTheme.shapes.small)
+        .padding(10.dp)) {
         Text(
             text = "Date",
             fontFamily = FontFamily.Monospace,
@@ -442,7 +462,10 @@ fun TimePickerSection(
     var showTimePicker by remember { mutableStateOf(false) }
     var displayedTime by remember { mutableStateOf(selectedTime.formatTime()) }
 
-    Column(modifier = Modifier.padding(5.dp).border(2.dp,Blue, shape = MaterialTheme.shapes.small).padding(10.dp)) {
+    Column(modifier = Modifier
+        .padding(5.dp)
+        .border(2.dp, Blue, shape = MaterialTheme.shapes.small)
+        .padding(10.dp)) {
         Text(
             text = "Time",
             modifier = Modifier.padding(bottom = 4.dp),
@@ -501,54 +524,6 @@ fun TimePickerSection(
                     TimePicker(state = timePickerState)
                 }
             )
-        }
-    }
-}
-
-@Composable
-fun WeatherAlertOverlay(onDismiss: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.5f)) // Semi-transparent background
-            .clickable { onDismiss() }, // Close when clicked outside
-        contentAlignment = Alignment.Center
-    ) {
-        Card(
-            modifier = Modifier
-                .padding(24.dp)
-                .fillMaxWidth()
-                .wrapContentHeight(),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(
-                defaultElevation = 8.dp
-            )
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Weather Alert!",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Red
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = "The wind is strong! Stay safe.",
-                    fontSize = 16.sp,
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Button(onClick = onDismiss) {
-                    Text("OK")
-                }
-            }
         }
     }
 }

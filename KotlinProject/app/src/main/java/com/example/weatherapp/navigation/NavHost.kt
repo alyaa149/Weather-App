@@ -25,6 +25,8 @@ import com.example.weatherapp.data.local.WeatherDataBase
 import com.example.weatherapp.data.remote.RemoteDataSourceImpl
 import com.example.weatherapp.data.remote.RetrofitHelper
 import com.example.weatherapp.data.repo.RepoImpl
+import com.example.weatherapp.features.Settings.ViewModel.SettingsViewModel
+import com.example.weatherapp.features.Settings.ViewModel.SettingsViewModelFactory
 import com.example.weatherapp.features.map.viewmodel.MapViewModel
 import com.example.weatherapp.features.map.viewmodel.MapViewModelFactory
 import com.example.weatherapp.features.alerts.view.AlertsScreen
@@ -96,7 +98,12 @@ fun SetUpNavHost(navController: NavHostController, paddingValues: PaddingValues)
             )
         }
         composable<ScreenRoutes.SettingsScreen> {
-            SettingsUI(navigateToMap={navController.navigate(ScreenRoutes.MapScreenFromSettings)})
+            val viewModel: SettingsViewModel = viewModel(
+                factory = remember {
+                    SettingsViewModelFactory()
+                })
+
+            SettingsUI(navigateToMap={navController.navigate(ScreenRoutes.MapScreenFromSettings)},viewModel)
         }
         composable<ScreenRoutes.MapScreenFromFavorites> {
             val mapViewModel: MapViewModel = viewModel(

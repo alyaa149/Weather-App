@@ -1,5 +1,6 @@
 package com.example.weatherapp.Utils
 
+import android.content.res.Configuration
 import android.os.Build
 import androidx.annotation.RequiresApi
 import com.example.weatherapp.R
@@ -9,6 +10,7 @@ import java.time.DayOfWeek
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @RequiresApi(Build.VERSION_CODES.O)
 fun fetchCurrentTime(): String {
@@ -62,3 +64,13 @@ fun getUnit():String{
         return "K"
     }
 }
+fun setAppLocale( language: String) {
+    val context = AppContext.getContext()
+    val locale = Locale(language)
+    Locale.setDefault(locale)
+
+    val config = Configuration(context.resources.configuration)
+    config.setLocale(locale)
+    context.resources.updateConfiguration(config, context.resources.displayMetrics)
+}
+

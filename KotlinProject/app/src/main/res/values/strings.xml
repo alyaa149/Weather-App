@@ -20,4 +20,11 @@
     <string name="sunset">Sunset</string>
     <string name="confirm_location">Confirm Location</string>
     <string name="search_for_places">Search for places...</string>
+    <string name="title_activity_weather_alert">WeatherAlert</string>
+    <string name="no_favorite_locations_yet">No favorite locations yet</string>
+    <string name="no_reminders_shown">No reminders shown</string>
+    <string name="meter_second">meter/second</string>
+    <string name="mile_hour">mile/hour</string>
+    <string name="english">English</string>
+    <string name="arabic">Arabic</string>
 </resources>

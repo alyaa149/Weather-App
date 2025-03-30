@@ -50,11 +50,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import com.example.weatherapp.Utils.sharedprefrences.sharedPreferencesUtils
+import com.example.weatherapp.features.Settings.ViewModel.SettingsViewModel
 import com.example.weatherapp.ui.theme.Roze
 
 @Composable
 fun SettingsUI(
     navigateToMap : () -> Unit,
+    viewModel: SettingsViewModel,
 ) {
     val weatherPreferences = remember { sharedPreferencesUtils }
 
@@ -170,7 +172,7 @@ fun SettingsUI(
         SettingDropdown(
             title = stringResource(R.string.wind_speed_unit),
             picPath = R.drawable.windsettings,
-            items = listOf("meter/second", "mile/hour"),
+            items = listOf(stringResource(R.string.meter_second), stringResource(R.string.mile_hour)),
             selectedItem = selectedWindUnit
         ) {
             if(it == "mile/hour"){
@@ -187,16 +189,14 @@ fun SettingsUI(
         SettingDropdown(
             title = stringResource(R.string.language),
             picPath = R.drawable.language,
-            items = listOf("English", "Arabic"),
-            selectedItem = selectedLanguage
+            items = listOf(stringResource(R.string.english), stringResource(R.string.arabic)),
+            selectedItem = if (selectedLanguage == AppStrings().ENGLISHKEY) stringResource(R.string.english) else stringResource(R.string.arabic)
         ) {
-            selectedLanguage = it
-            weatherPreferences.putData(AppStrings().LANGUAGEKEY, if (it == "English") AppStrings().ENGLISHKEY else AppStrings().ARABICKEY)
+            val newLanguage = if (it == "English") AppStrings().ENGLISHKEY else AppStrings().ARABICKEY
+            viewModel.updateLanguage(newLanguage)
         }
     }
 }
-
-
 
 //common
 @Composable

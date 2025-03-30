@@ -13,149 +13,218 @@ import com.example.weatherapp.Utils.fetchCurrentTime
 import com.example.weatherapp.Utils.fetchformattedDateTime
 import com.example.weatherapp.Utils.sharedprefrences.sharedPreferencesUtils
 import com.example.weatherapp.data.models.City
+import com.example.weatherapp.data.models.WeatherForecastResponse
+import com.example.weatherapp.data.models.WeatherInHomeUsingRoom
 import com.example.weatherapp.data.models.WeatherResponse
 import com.example.weatherapp.data.repo.Repo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.time.DayOfWeek
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-
 @RequiresApi(Build.VERSION_CODES.O)
 class DetailsViewModel(private val repo: Repo) : ViewModel() {
-
+    // State Flows
     private val _currentDetails = MutableStateFlow<Response<WeatherResponse>>(Response.Loading)
     val currentDetails: StateFlow<Response<WeatherResponse>> = _currentDetails
-    @RequiresApi(Build.VERSION_CODES.O)
-    val currentDate= fetchCurrentTime()
-    @RequiresApi(Build.VERSION_CODES.O)
-    val currentTime= fetchformattedDateTime()
 
+    private val _nextHoursDetails = MutableStateFlow<Response<List<WeatherResponse>>>(Response.Loading)
+    val nextHoursDetails: StateFlow<Response<List<WeatherResponse>>> = _nextHoursDetails
 
-    private val _nextHoursDetailsList = MutableStateFlow<Response<List<WeatherResponse>>>(Response.Loading)
-    val nextHoursDetailsList: StateFlow<Response<List<WeatherResponse>>> = _nextHoursDetailsList
-
-    private val _futureDaysList = MutableStateFlow<Response<List<WeatherResponse>>>(Response.Loading)
-    val futureDaysList: StateFlow<Response<List<WeatherResponse>>> = _futureDaysList
-
-    private val _futureDays =MutableStateFlow<Response<List<WeatherResponse>>>(Response.Loading)
+    private val _futureDays = MutableStateFlow<Response<List<WeatherResponse>>>(Response.Loading)
     val futureDays: StateFlow<Response<List<WeatherResponse>>> = _futureDays
 
+    // Utils
+    @RequiresApi(Build.VERSION_CODES.O)
+    val currentDate = fetchCurrentTime()
 
     @RequiresApi(Build.VERSION_CODES.O)
-     fun getFutureDaysWeatherForecast(lat: Double, lon: Double) {
-        viewModelScope.launch(Dispatchers.IO) {
+    val currentTime = fetchformattedDateTime()
+
+    private val forecastProcessor = ForecastProcessor()
+    private var lastLat: Double = 0.0
+    private var lastLon: Double = 0.0
+
+    fun loadWeatherData(lat: Double, lon: Double) {
+        lastLat = lat
+        lastLon = lon
+        viewModelScope.launch {
+            Log.d("WeatherLoad", "Starting load for lat:$lat lon:$lon")
+            if (NetworkUtils.isNetworkAvailable()) {
+                Log.d("Network", "Online mode - fetching fresh data")
+                loadOnlineData(lat, lon)
+            } else {
+                Log.d("Network", "Offline mode - loading cached data")
+                loadOfflineData(lat, lon)
+            }
+        }
+    }
+
+    private suspend fun loadOnlineData(lat: Double, lon: Double) {
+        try {
+            Log.d("Network", "Fetching current weather...")
+            val current = repo.fetchWeatherFromLatLonUnitLang(
+                lat, lon,
+                getTempUnit(),
+                getLanguage()
+            ).first().also {
+                Log.d("Network", "Current weather received")
+            }
+
+            _currentDetails.value = Response.Success(current)
+
+            Log.d("Network", "Fetching forecast...")
+            val forecast = repo.get5DaysWeatherForecast(
+                lat, lon,
+                getTempUnit(),
+                getLanguage()
+            ).first().also {
+                Log.d("Network", "Forecast received")
+            }
+
+            val (nextHours, futureDays) = forecastProcessor.processForecast(forecast.list).also {
+                Log.d("Processing", "Forecast processed")
+            }
+
+            _nextHoursDetails.value = Response.Success(nextHours)
+            _futureDays.value = Response.Success(futureDays)
+
+            saveWeatherData(lat, lon, current, forecast).also {
+                Log.d("Database", "Data saved to local storage")
+            }
+
+        } catch (e: Exception) {
+            Log.e("OnlineError", "Online fetch failed", e)
+            // Only fallback if we haven't already tried offline
+            if (_currentDetails.value !is Response.Success) {
+                loadOfflineData(lat, lon)
+            }
+        }
+    }
+
+    private suspend fun loadOfflineData(lat: Double, lon: Double) {
+        try {
+            Log.d("Offline", "Loading cached data...")
+            _currentDetails.value = Response.Loading
+            _nextHoursDetails.value = Response.Loading
             _futureDays.value = Response.Loading
-            try {
-                repo.get5DaysWeatherForecast(lat, lon,sharedPreferencesUtils.getData(AppStrings().TEMPUNITKEY) ?: "metric" ,sharedPreferencesUtils.getData(AppStrings().LANGUAGEKEY) ?: "en")
-                    .collect { response ->
-                        val currentDateTime = fetchformattedDateTime()
-                        val currentDate = LocalDateTime.parse(currentDateTime, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")).toLocalDate()
-                        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                        val futureForecasts = response.list.filter { forecastItem ->
-                            try {
-                                val forecastDateTime = LocalDateTime.parse(forecastItem.dt_txt, formatter)
-                                forecastDateTime.toLocalDate().isAfter(currentDate)  // Keep only future days
-                            } catch (e: Exception) {
-                                Log.e("ParsingError", "Failed to parse date: ${forecastItem.dt_txt}")
-                                false
-                            }
-                        }
-//                        groupedByDay = {
-//                            "2025-11-10": [
-//                            {"dt_txt": "2025-11-10 00:00:00", "temp": 15},
-//                            {"dt_txt": "2025-11-10 03:00:00", "temp": 16},
-//                            {"dt_txt": "2025-11-10 06:00:00", "temp": 17}
-//                            ],
-//                            "2025-11-11": [
-//                            {"dt_txt": "2025-11-11 00:00:00", "temp": 14},
-//                            {"dt_txt": "2025-11-11 03:00:00", "temp": 15}
-//                            ],
-//                            "2025-11-12": [
-//                            {"dt_txt": "2025-11-12 00:00:00", "temp": 13},
-//                            {"dt_txt": "2025-11-12 03:00:00", "temp": 14}
-//                            ]
-//                        }
-                        val groupedByDay = futureForecasts.groupBy { forecastItem ->
-                            forecastItem.dt_txt?.substring(0, 10) // Extract "yyyy-MM-dd"
-                        }
 
-                        val futureDaysList = groupedByDay.mapNotNull { (_, forecasts) ->
-                            val maxTemp = forecasts.mapNotNull { it.main?.temp_max }.maxOrNull() ?: Double.MIN_VALUE
-                            val minTemp = forecasts.mapNotNull { it.main?.temp_min }.minOrNull() ?: Double.MAX_VALUE
-                            val firstForecast = forecasts.firstOrNull() ?: return@mapNotNull null
-                            val firstMain = firstForecast.main ?: return@mapNotNull null
+            val cached = withTimeoutOrNull(3000) {
+                repo.getAllDetailsWeatherFromLatLonHome(lat, lon).first()
+            } ?: throw Exception("Database timeout")
 
-                            firstForecast.copy(
-                                main = firstMain.copy(
-                                    temp_max = maxTemp,
-                                    temp_min = minTemp
-                                )
-                            )
-                        }
+            if (cached == null) {
+                throw Exception("No cached data for location")
+            }
 
-                        _futureDays.value = Response.Success(futureDaysList)
-                        Log.i("response", "futureDaysList: $futureDaysList")
+            Log.d("Offline", "Cached data found: ${cached.weatherResponse != null}")
 
-                    }
-            } catch (e: Exception) {
+            cached.weatherResponse?.let { response ->
+                _currentDetails.value = Response.Success(response)
+                Log.d("Offline", "Current weather loaded from cache")
+            } ?: throw Exception("No current weather in cache")
+
+            cached.watherForecast?.let { forecast ->
+                val (nextHours, futureDays) = forecastProcessor.processForecast(forecast.list)
+                _nextHoursDetails.value = Response.Success(nextHours)
+                _futureDays.value = Response.Success(futureDays)
+                Log.d("Offline", "Forecast loaded from cache")
+            } ?: Log.w("Offline", "No forecast in cache")
+
+        } catch (e: Exception) {
+            Log.e("OfflineError", "Offline load failed", e)
+            if (_currentDetails.value !is Response.Success) {
+                _currentDetails.value = Response.Failure(e)
+            }
+            if (_nextHoursDetails.value !is Response.Success) {
+                _nextHoursDetails.value = Response.Failure(e)
+            }
+            if (_futureDays.value !is Response.Success) {
                 _futureDays.value = Response.Failure(e)
-                Log.e("WeatherError", e.message.toString())
             }
         }
     }
 
+    private suspend fun saveWeatherData(
+        lat: Double,
+        lon: Double,
+        current: WeatherResponse,
+        forecast: WeatherForecastResponse
+    ) {
+        try {
+            val data = WeatherInHomeUsingRoom(
+                lat = lat,
+                lon = lon,
+                weatherResponse = current,
+                watherForecast = forecast,
+            )
 
+            repo.insertWeatherHome(data)
+            Log.d("Database", "Data saved for lat:$lat lon:$lon")
 
-     fun getFutureWeatherForecast(lat: Double, lon: Double) {
-        viewModelScope.launch(Dispatchers.IO) {
-            _nextHoursDetailsList.value = Response.Loading
-            try {
-                repo.get5DaysWeatherForecast(lat,lon,sharedPreferencesUtils.getData(AppStrings().TEMPUNITKEY) ?: "metric" ,sharedPreferencesUtils.getData(AppStrings().LANGUAGEKEY) ?: "en")
-                    .collect { response ->
-
-                        _nextHoursDetailsList.value = Response.Success(response.list)
-                        Log.i("response", response.list.toString())
-                    }
-            } catch (e: Exception) {
-                _nextHoursDetailsList.value = Response.Failure(e)
-                Log.e("WeatherError", e.message.toString())
+            // Verify save
+            val saved = repo.getAllDetailsWeatherFromLatLonHome(lat, lon).first()
+            if (saved == null) {
+                Log.e("Database", "Data verification failed - nothing saved")
             }
+        } catch (e: Exception) {
+            Log.e("Database", "Save failed", e)
         }
     }
 
-     fun fetchWeatherFromLatLonUnitLang(lat: Double, lon: Double, ) {
-         viewModelScope.launch(Dispatchers.IO) {
-             _currentDetails.value = Response.Loading
-             try {
-                 if (NetworkUtils.isNetworkAvailable()) {
-                     repo.fetchWeatherFromLatLonUnitLang(
-                         lat, lon,
-                         sharedPreferencesUtils.getData(AppStrings().TEMPUNITKEY) ?: "metric",
-                         sharedPreferencesUtils.getData(AppStrings().LANGUAGEKEY) ?: "en"
-                     ).collect { response ->
-                         _currentDetails.value = Response.Success(response)
-                       //  repo.updateWeather(lat, lon, response)
-                     }
-                 } else {
-                    repo.getWeatherFromLatLonOffline(lat, lon)
-                        .collect{
-                            _currentDetails.value = Response.Success(it.weatherResponse)
-                        }
-                 }
-             } catch (e: Exception) {
-                 _currentDetails.value = Response.Failure(e)
-             }
-         }
+    fun refresh() {
+        loadWeatherData(lastLat, lastLon)
     }
 
+    private fun getTempUnit() =
+        sharedPreferencesUtils.getData(AppStrings().TEMPUNITKEY) ?: "metric"
 
-
-
+    private fun getLanguage() =
+        sharedPreferencesUtils.getData(AppStrings().LANGUAGEKEY) ?: "en"
 }
 
+class ForecastProcessor {
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun processForecast(forecastList: List<WeatherResponse>): Pair<List<WeatherResponse>, List<WeatherResponse>> {
+        return try {
+            val currentDate = LocalDateTime.now().toLocalDate()
+            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+
+            val futureForecasts = forecastList.filter { item ->
+                try {
+                    LocalDateTime.parse(item.dt_txt, formatter)
+                        .toLocalDate()
+                        .isAfter(currentDate)
+                } catch (e: Exception) {
+                    false
+                }
+            }
+
+            val dailyForecasts = futureForecasts
+                .groupBy { it.dt_txt?.substring(0, 10) }
+                .mapNotNull { (_, forecasts) ->
+                    forecasts.firstOrNull()?.let { first ->
+                        first.copy(
+                            main = first.main?.copy(
+                                temp_max = forecasts.maxOf { it.main?.temp_max ?: Double.MIN_VALUE },
+                                temp_min = forecasts.minOf { it.main?.temp_min ?: Double.MAX_VALUE }
+                            )
+                        )
+                    }
+                }
+
+            Pair(futureForecasts, dailyForecasts)
+        } catch (e: Exception) {
+            Log.e("ForecastProcessor", "Error processing forecast", e)
+            Pair(emptyList(), emptyList())
+        }
+    }
+}
 
 class DetailsViewModelFactory(private val repo: Repo) : ViewModelProvider.Factory {
     @RequiresApi(Build.VERSION_CODES.O)

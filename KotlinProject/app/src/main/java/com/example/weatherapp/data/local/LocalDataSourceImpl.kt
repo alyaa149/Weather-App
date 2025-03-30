@@ -3,7 +3,10 @@ package com.example.weatherapp.data.local
 import android.util.Log
 import com.example.weatherapp.data.models.City
 import com.example.weatherapp.data.models.Reminder
+import com.example.weatherapp.data.models.WeatherForecastResponse
+import com.example.weatherapp.data.models.WeatherInHomeUsingRoom
 import com.example.weatherapp.data.models.WeatherResponse
+import com.google.gson.Gson
 import kotlinx.coroutines.flow.Flow
 
 class LocalDataSourceImpl(private val weatherDao: WeatherDao, private val reminderDao: ReminderDao) : LocalDataSource  {
@@ -25,6 +28,22 @@ class LocalDataSourceImpl(private val weatherDao: WeatherDao, private val remind
     override suspend fun updateWeather(lat: Double, lon: Double, weatherResponse: WeatherResponse) {
         return weatherDao.updateWeather(lat, lon, weatherResponse)
     }
+
+
+    override fun getAllDetailsWeatherFromLatLonHome(lat: Double, lon: Double): Flow<WeatherInHomeUsingRoom?> {
+        return weatherDao.getAllDetailsWeatherFromLatLonHome(lat, lon)
+    }
+
+    override suspend fun insertWeatherHome(weather: WeatherInHomeUsingRoom): Long {
+        return weatherDao.insertWeatherHome(weather)
+    }
+
+    override suspend fun updateWeatherHome(lat: Double, lon: Double, weatherResponse: WeatherResponse?, weatherForecastResponse: WeatherForecastResponse?) {
+        val weatherJson = weatherResponse?.let { Gson().toJson(it) }
+        val forecastJson = weatherForecastResponse?.let { Gson().toJson(it) }
+        weatherDao.updateWeatherHome(lat, lon, weatherJson, forecastJson)
+    }
+
     //Reminder
     override suspend fun insertReminder(reminder: Reminder): Long {
         return reminderDao.insertReminder(reminder)

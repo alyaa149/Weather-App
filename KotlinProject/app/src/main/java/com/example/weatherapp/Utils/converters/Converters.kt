@@ -3,6 +3,8 @@ package com.example.weatherapp.Utils.converters
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.room.TypeConverter
+import com.example.weatherapp.data.models.WeatherForecastResponse
+import com.example.weatherapp.data.models.WeatherInHomeUsingRoom
 import com.example.weatherapp.data.models.WeatherResponse
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -28,10 +30,21 @@ class Converters {
     fun fromWeatherResponse(weatherResponse: WeatherResponse): String {
         return gson.toJson(weatherResponse)
     }
-
     @TypeConverter
     fun toWeatherResponse(weatherResponseString: String): WeatherResponse {
-        val type = object : TypeToken<WeatherResponse>() {}.type
-        return gson.fromJson(weatherResponseString, type)
+        return gson.fromJson(weatherResponseString, WeatherResponse::class.java)
+    }
+
+
+    @TypeConverter
+    fun fromWeatherForecastResponse(weatherForecastResponse: WeatherForecastResponse?): String? {
+        return gson.toJson(weatherForecastResponse)
+    }
+
+    @TypeConverter
+    fun toWeatherForecastResponse(weatherForecastResponseString: String?): WeatherForecastResponse? {
+        return weatherForecastResponseString?.let {
+            gson.fromJson(it, object : TypeToken<WeatherForecastResponse?>() {}.type)
+        }
     }
 }

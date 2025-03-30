@@ -13,6 +13,7 @@ import androidx.work.WorkerParameters
 import com.example.weatherapp.Utils.constants.AppStrings
 import com.example.weatherapp.Utils.fetchCurrentTime
 import com.example.weatherapp.Utils.getDrawableResourceId
+import com.example.weatherapp.Utils.getUnit
 import com.example.weatherapp.Utils.sharedprefrences.sharedPreferencesUtils
 import com.example.weatherapp.data.local.LocalDataSourceImpl
 import com.example.weatherapp.data.local.WeatherDataBase
@@ -20,7 +21,6 @@ import com.example.weatherapp.data.models.WeatherResponse
 import com.example.weatherapp.data.remote.RemoteDataSourceImpl
 import com.example.weatherapp.data.remote.RetrofitHelper
 import com.example.weatherapp.data.repo.RepoImpl
-import com.example.weatherapp.data.sharedPrefrences.SharedPreferencesDataSource
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -30,7 +30,7 @@ class NotificationWorker (val context: Context, val params: WorkerParameters) : 
     override suspend fun doWork(): Result {
          val _currentDetails = MutableStateFlow<WeatherResponse?>(null)
          val currentDetails: StateFlow<WeatherResponse?> = _currentDetails
-        Log.i("NotificationWorker", "Worker started")
+        Log.i("response", "Worker started")
         return try {
             if (isStopped) {
                 return Result.failure()
@@ -45,8 +45,8 @@ class NotificationWorker (val context: Context, val params: WorkerParameters) : 
                 )
             try {
                 repo.fetchWeatherFromLatLonUnitLang(
-                    SharedPreferencesDataSource.getInstance().getData(AppStrings().LATITUDEKEY)?.toDouble() ?: 0.0,
-                    SharedPreferencesDataSource.getInstance().getData(AppStrings().LONGITUDEKEY)?.toDouble() ?: 0.0,
+                    sharedPreferencesUtils.getData(AppStrings().LATITUDEKEY)?.toDouble() ?: 0.0,
+                    sharedPreferencesUtils.getData(AppStrings().LONGITUDEKEY)?.toDouble() ?: 0.0,
                     sharedPreferencesUtils.getData(AppStrings().TEMPUNITKEY) ?: "metric",
                     sharedPreferencesUtils.getData(AppStrings().LANGUAGEKEY) ?: "en"
                 ).collect { response ->
@@ -59,7 +59,7 @@ class NotificationWorker (val context: Context, val params: WorkerParameters) : 
 
             val pic = currentDetails.value?.weather?.get(0)?.main ?: "Clear"
             val title = inputData.getString("title") ?: "Weather Alert"
-            val message = " the wind is ${currentDetails.value?.wind?.speed ?: "Unknown"}"
+            val message = " the wind is ${currentDetails.value?.wind?.speed  ?: "0"} ${sharedPreferencesUtils.getData(AppStrings().WINDUNITKEY)} and the temperature is ${currentDetails.value?.main?.temp ?: "0"}°${getUnit()}"
 
             showNotification(pic, title, message)
             Log.i("response", "Received data in managerrr: $title - $message ${fetchCurrentTime()}")

@@ -46,78 +46,78 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 
-abstract class WeatherAlertService : Service(), LifecycleOwner {
-    private lateinit var windowManager: WindowManager
-    private lateinit var alertView: ComposeView
-    private val lifecycleRegistry = LifecycleRegistry(this)
-
-    override fun onCreate() {
-        super.onCreate()
-        windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
-
-        // Mark lifecycle as CREATED
-        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
-    }
-
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val weatherJson = intent?.getStringExtra("weather_data")
-        val weatherResponse: WeatherResponse? = weatherJson?.let {
-            Gson().fromJson(it, object : TypeToken<WeatherResponse>() {}.type)
-        }
-
-        if (weatherResponse != null) {
-            Log.d("response", "Weather data service received: $weatherResponse")
-            showWeatherAlert(weatherResponse)
-        } else {
-            Log.e("response", "Failed to parse weather data")
-            stopSelf()
-        }
-
-        return START_NOT_STICKY
-    }
-
-    private fun showWeatherAlert(weather: WeatherResponse) {
-        if (::alertView.isInitialized) {
-            windowManager.removeView(alertView)
-        }
-
-        alertView = ComposeView(this).apply {
-            setViewTreeLifecycleOwner(this@WeatherAlertService) // ✅ Attach LifecycleOwner
-            setContent {
-                WeatherAlertScreen(weather) {
-                    removeWeatherAlert()
-                }
-            }
-        }
-
-        val layoutParams = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP
-        }
-
-        windowManager.addView(alertView, layoutParams)
-
-        // Mark lifecycle as STARTED
-        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
-    }
-
-    private fun removeWeatherAlert() {
-        if (::alertView.isInitialized) {
-            windowManager.removeView(alertView)
-        }
-        stopSelf()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY) // Cleanup
-    }
-
-
-    override fun onBind(intent: Intent?): IBinder? = null
-}
+//abstract class WeatherAlertService : Service(), LifecycleOwner {
+//    private lateinit var windowManager: WindowManager
+//    private lateinit var alertView: ComposeView
+//    private val lifecycleRegistry = LifecycleRegistry(this)
+//
+//    override fun onCreate() {
+//        super.onCreate()
+//        windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+//
+//        // Mark lifecycle as CREATED
+//        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+//    }
+//
+//    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+//        val weatherJson = intent?.getStringExtra("weather_data")
+//        val weatherResponse: WeatherResponse? = weatherJson?.let {
+//            Gson().fromJson(it, object : TypeToken<WeatherResponse>() {}.type)
+//        }
+//
+//        if (weatherResponse != null) {
+//            Log.d("response", "Weather data service received: $weatherResponse")
+//            showWeatherAlert(weatherResponse)
+//        } else {
+//            Log.e("response", "Failed to parse weather data")
+//            stopSelf()
+//        }
+//
+//        return START_NOT_STICKY
+//    }
+//
+//    private fun showWeatherAlert(weather: WeatherResponse) {
+//        if (::alertView.isInitialized) {
+//            windowManager.removeView(alertView)
+//        }
+//
+//        alertView = ComposeView(this).apply {
+//            setViewTreeLifecycleOwner(this@WeatherAlertService) // ✅ Attach LifecycleOwner
+//            setContent {
+//                WeatherAlertScreen(weather) {
+//                    removeWeatherAlert()
+//                }
+//            }
+//        }
+//
+//        val layoutParams = WindowManager.LayoutParams(
+//            WindowManager.LayoutParams.MATCH_PARENT,
+//            WindowManager.LayoutParams.WRAP_CONTENT,
+//            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+//            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
+//            PixelFormat.TRANSLUCENT
+//        ).apply {
+//            gravity = Gravity.TOP
+//        }
+//
+//        windowManager.addView(alertView, layoutParams)
+//
+//        // Mark lifecycle as STARTED
+//        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
+//    }
+//
+//    private fun removeWeatherAlert() {
+//        if (::alertView.isInitialized) {
+//            windowManager.removeView(alertView)
+//        }
+//        stopSelf()
+//    }
+//
+//    override fun onDestroy() {
+//        super.onDestroy()
+//        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY) // Cleanup
+//    }
+//
+//
+//    override fun onBind(intent: Intent?): IBinder? = null
+//}

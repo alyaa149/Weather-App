@@ -12,6 +12,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.work.WorkManager
 import com.example.weatherapp.features.favorites.view.FavLocUI
 import com.example.weatherapp.features.favorites.viewmodel.FavViewModel
 import com.example.weatherapp.features.favorites.viewmodel.FavViewModelFactory
@@ -171,6 +172,8 @@ fun SetUpNavHost(navController: NavHostController, paddingValues: PaddingValues)
                                 WeatherDataBase.getInstance(context).getReminderDao()
                             ),
                         ),
+                        WorkManager.getInstance(context),
+                        context
                     )
                 })
             AlertsScreen(alertsViewModel)

@@ -75,12 +75,12 @@ import java.time.format.DateTimeFormatter
 
 
 class MainActivity : ComponentActivity() {
-    public val REQUEST_LOCATION_CODE = 2005
+     val REQUEST_LOCATION_CODE = 2005
 
-    public val fusedLocationClient by lazy {
+    val fusedLocationClient by lazy {
         LocationServices.getFusedLocationProviderClient(this)
     }
-    public lateinit var locationState: MutableState<android.location.Location>
+     lateinit var locationState: MutableState<android.location.Location>
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -95,11 +95,11 @@ class MainActivity : ComponentActivity() {
 
 
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(AppContext.getContext())) {
-            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                Uri.parse("package:${AppContext.getContext().packageName}"))
-            AppContext.getContext().startActivity(intent)
-        }
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(AppContext.getContext())) {
+//            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+//                Uri.parse("package:${AppContext.getContext().packageName}"))
+//            AppContext.getContext().startActivity(intent)
+//        }
 
     }
 

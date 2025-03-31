@@ -18,13 +18,12 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.example.weatherapp.Response
 import com.example.weatherapp.Utils.AppContext
+import com.example.weatherapp.Utils.MyAppContext
 import com.example.weatherapp.Utils.fetchCurrentTime
 import com.example.weatherapp.data.models.Reminder
 import com.example.weatherapp.data.repo.Repo
 import com.example.weatherapp.data.repo.RepoImpl
 import com.example.weatherapp.features.alerts.notificationnsandalerts.NotificationWorker
-import com.example.weatherapp.features.alerts.notificationnsandalerts.WeatherAlertReceiver
-import com.example.weatherapp.features.alerts.notificationnsandalerts.WeatherAlertScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -40,7 +39,7 @@ import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 
 @RequiresApi(Build.VERSION_CODES.O)
-class AlertViewModel(private val repo: Repo) : ViewModel() {
+class AlertViewModel(private val repo: Repo,private val workManager: WorkManager,private val context: Context) : ViewModel() {
     private val _reminders = MutableStateFlow<Response<List<Reminder>>>(Response.Loading)
     val reminders: StateFlow<Response<List<Reminder>>> = _reminders.asStateFlow()
     private val _eventFlow = MutableSharedFlow<String>()
@@ -153,7 +152,6 @@ class AlertViewModel(private val repo: Repo) : ViewModel() {
         }
     }
 
-    private val workManager = WorkManager.getInstance(AppContext.getContext())
 
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -180,10 +178,7 @@ class AlertViewModel(private val repo: Repo) : ViewModel() {
         workManager.enqueue(notificationRequest)
         Log.i("response", "Notification scheduled successfully. ${fetchCurrentTime()}")
     }
-
-    private val scheduler = WeatherAlertScheduler()
-
-
+//    private val scheduler = WeatherAlertScheduler(AppContext.getContext())
 }
 
 
@@ -191,9 +186,9 @@ class AlertViewModel(private val repo: Repo) : ViewModel() {
 
 
 
-class AlertViewModelFactory(private val repo: RepoImpl) : ViewModelProvider.Factory {
+class AlertViewModelFactory(private val repo: RepoImpl,private val workManager: WorkManager,private val context: Context) : ViewModelProvider.Factory {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return AlertViewModel(repo) as T
+        return AlertViewModel(repo,workManager,context) as T
     }
 }

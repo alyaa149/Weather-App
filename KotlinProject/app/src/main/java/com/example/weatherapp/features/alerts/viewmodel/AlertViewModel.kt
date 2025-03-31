@@ -85,20 +85,26 @@ class AlertViewModel(private val repo: Repo,private val workManager: WorkManager
         snackbarHostState: SnackbarHostState,
         coroutineScope: CoroutineScope
     ) {
+
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val result = repo.insertReminder(reminder)
                 Log.i("response", "Inserted reminder ID: $result")
+
+                // Update state optimistically first
+                val currentList = (_reminders.value as? Response.Success)?.data ?: emptyList()
+                _reminders.value = Response.Success(currentList + reminder)
+
+                // Then refresh from source
                 fetchAlerts()
-                withContext(Dispatchers.Main) {
-                    coroutineScope.launch {
-                        val result = snackbarHostState.showSnackbar(
+
+                val snackBarResult = snackbarHostState.showSnackbar(
                             message = "Reminder added",
                             actionLabel = "Undo",
                             duration = SnackbarDuration.Short
                         )
 
-                        if (result == SnackbarResult.ActionPerformed) {
+                        if (snackBarResult == SnackbarResult.ActionPerformed) {
                             deleteAlert(reminder, snackbarHostState, coroutineScope)
                         }
                         if (reminder.type == "NOTIFICATION") {
@@ -106,8 +112,6 @@ class AlertViewModel(private val repo: Repo,private val workManager: WorkManager
                         } else {
                          //   scheduler.scheduleWeatherAlert(reminder)
                         }
-                    }
-                }
 
             } catch (e: Exception) {
                 Log.e("response", "Insert error: ${e.message}")

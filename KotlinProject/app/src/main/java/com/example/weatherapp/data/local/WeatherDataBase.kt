@@ -11,7 +11,7 @@ import com.example.weatherapp.data.models.Reminder
 import com.example.weatherapp.data.models.WeatherInHomeUsingRoom
 
 
-@Database(entities = [City::class, Reminder::class, WeatherInHomeUsingRoom::class], version = 8)
+@Database(entities = [City::class, Reminder::class, WeatherInHomeUsingRoom::class], version = 9)
 @TypeConverters(Converters::class)
 abstract class WeatherDataBase : RoomDatabase()  {
     abstract fun getWeatherDao(): WeatherDao

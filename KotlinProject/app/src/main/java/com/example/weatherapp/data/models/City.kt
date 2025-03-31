@@ -9,7 +9,7 @@ import com.example.weatherapp.Utils.converters.Converters
 
 @Entity(
     tableName = "weather_database",
- //   indices = [Index(value = ["lat", "lon"], unique = true)]
+   indices = [Index(value = ["lat", "lon"], unique = true)]
 )
 @TypeConverters(Converters::class)
 data class City(

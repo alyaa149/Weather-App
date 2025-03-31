@@ -11,7 +11,6 @@ plugins {
 android {
     namespace = "com.example.weatherapp"
     compileSdk = 35
-
     defaultConfig {
         applicationId = "com.example.weatherapp"
         minSdk = 24
@@ -54,7 +53,9 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.runtime.livedata)
+    implementation(libs.androidx.junit.ktx)
     testImplementation(libs.junit)
+    testImplementation(libs.androidx.runner)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -85,6 +86,17 @@ dependencies {
 
     //lottie
     implementation ("com.airbnb.android:lottie:6.3.0")
+
+    //testing
+    testImplementation ("io.mockk:mockk-android:1.13.17")
+    testImplementation ("io.mockk:mockk-agent:1.13.17")
+    testImplementation ("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    testImplementation ("androidx.arch.core:core-testing:2.2.0")
+    testImplementation("app.cash.turbine:turbine:1.0.0")
+    androidTestImplementation ("androidx.test.espresso:espresso-core:3.2.0-alpha02")
+
+
+
 
 
 

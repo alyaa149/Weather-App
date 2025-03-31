@@ -65,7 +65,7 @@ class DetailsViewModel(private val repo: Repo) : ViewModel() {
         }
     }
 
-    private suspend fun loadOnlineData(lat: Double, lon: Double) {
+     suspend fun loadOnlineData(lat: Double, lon: Double) {
         try {
             Log.d("Network", "Fetching current weather...")
             val current = repo.fetchWeatherFromLatLonUnitLang(
@@ -107,7 +107,7 @@ class DetailsViewModel(private val repo: Repo) : ViewModel() {
         }
     }
 
-    private suspend fun loadOfflineData(lat: Double, lon: Double) {
+     suspend fun loadOfflineData(lat: Double, lon: Double) {
         try {
             Log.d("Offline", "Loading cached data...")
             _currentDetails.value = Response.Loading
@@ -150,7 +150,7 @@ class DetailsViewModel(private val repo: Repo) : ViewModel() {
         }
     }
 
-    private suspend fun saveWeatherData(
+     suspend fun saveWeatherData(
         lat: Double,
         lon: Double,
         current: WeatherResponse,
@@ -181,10 +181,10 @@ class DetailsViewModel(private val repo: Repo) : ViewModel() {
         loadWeatherData(lastLat, lastLon)
     }
 
-    private fun getTempUnit() =
+     fun getTempUnit() =
         sharedPreferencesUtils.getData(AppStrings().TEMPUNITKEY) ?: "metric"
 
-    private fun getLanguage() =
+     fun getLanguage() =
         sharedPreferencesUtils.getData(AppStrings().LANGUAGEKEY) ?: "en"
 }
 

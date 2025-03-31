@@ -49,7 +49,7 @@ class MapViewModel(private val repo: Repo) : ViewModel() {
 
 
     fun fetchWeatherAndInsert(lat: Double, lon: Double, address: String?) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch{
             _currentDetails.value = Response.Loading
             try {
                 repo.fetchWeatherFromLatLonUnitLang(
@@ -70,10 +70,11 @@ class MapViewModel(private val repo: Repo) : ViewModel() {
                 }
             } catch (e: Exception) {
                 _currentDetails.value = Response.Failure(e)
-                Log.e("WeatherError", e.message.toString())
+             //   Log.e("WeatherError", e.message.toString())
             }
         }
     }
+
     private fun observeSearchFlow() {
         viewModelScope.launch {
             _searchFlow
@@ -112,7 +113,7 @@ class MapViewModel(private val repo: Repo) : ViewModel() {
                     }
                 }
             } catch (e: IOException) {
-                Log.e("Geocoder", "Error fetching location: ${e.message}")
+              //  Log.e("Geocoder", "Error fetching location: ${e.message}")
             }
         }
     }
@@ -140,9 +141,10 @@ class MapViewModel(private val repo: Repo) : ViewModel() {
         viewModelScope.launch {
             try {
                 val result = repo.insertWeather(city)
-                Log.i("response", "Inserted city ID: $result")
+              //  Log.i("response", "Inserted city ID: $result")
             } catch (e: Exception) {
-                Log.e("response", "Insert error: ${e.message}")
+
+              //  Log.e("response", "Insert error: ${e.message}")
             }
         }
     }

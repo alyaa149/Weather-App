@@ -32,7 +32,7 @@ class FavViewModel(private val weatherRepository: Repo) : ViewModel() {
         fetchFavoriteLocations()
     }
 
-    private fun fetchFavoriteLocations() {
+    fun fetchFavoriteLocations() {
         viewModelScope.launch(Dispatchers.IO) {
             weatherRepository.getAllFavs().collect { cities ->
                 Log.i("response", "Fetched cities: $cities")

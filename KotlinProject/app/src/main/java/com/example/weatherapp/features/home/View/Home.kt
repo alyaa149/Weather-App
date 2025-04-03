@@ -50,10 +50,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.weatherapp.features.home.ViewModel.DetailsViewModel
 import com.example.weatherapp.R
 import com.example.weatherapp.Response
+import com.example.weatherapp.Utils.AppContext
 import com.example.weatherapp.Utils.NetworkUtils
 import com.example.weatherapp.Utils.constants.AppStrings
+import com.example.weatherapp.Utils.fetchCurrentTime
+import com.example.weatherapp.Utils.fetchformattedDateTime
 import com.example.weatherapp.Utils.formatDateTime
+import com.example.weatherapp.Utils.formatNumberBasedOnLanguage
 import com.example.weatherapp.Utils.getDrawableResourceId
+import com.example.weatherapp.Utils.getTheDayOfTheWeek
 import com.example.weatherapp.Utils.getUnit
 import com.example.weatherapp.Utils.sharedprefrences.sharedPreferencesUtils
 import com.example.weatherapp.data.models.WeatherResponse
@@ -73,12 +78,13 @@ fun HomeWeatherScreen(
     val uiState = viewModel.currentDetails.collectAsStateWithLifecycle().value
     val hourlyForecast = viewModel.nextHoursDetails.collectAsStateWithLifecycle().value
     val futureDays = viewModel.futureDays.collectAsStateWithLifecycle().value
-    val currentDate = viewModel.currentDate
+    val currentDateTime = fetchformattedDateTime()
+    val currentDate = getTheDayOfTheWeek(currentDateTime)
 
     val snackbarHostState = remember { SnackbarHostState() }
     if (!NetworkUtils.isNetworkAvailable()) {
         LaunchedEffect(snackbarHostState) {
-            snackbarHostState.showSnackbar("No internet connection")
+            snackbarHostState.showSnackbar(AppContext.getContext().getString(R.string.no_internet_connection))
         }
 
     }
@@ -92,7 +98,7 @@ fun HomeWeatherScreen(
             val lon = sharedPreferencesUtils.getData(AppStrings().LONGITUDEKEY)?.toDouble() ?: 0.0
             viewModel.loadWeatherData(lat, lon)
         } catch (e: Exception) {
-            showError = e.message ?: "Failed to load weather data"
+            showError = e.message ?: AppContext.getContext().getString(R.string.failed_to_load_weather_data)
         }
     }
 
@@ -148,7 +154,7 @@ fun HomeWeatherScreen(
                         is Response.Loading -> LoadingIndicator()
                         is Response.Success -> {
                             val weatherData = uiState.data
-                            WeatherCard(weatherData, currentDate)
+                            WeatherCard(weatherData, currentDate ?: "00:00",currentDateTime)
                             WeatherDetails(weatherData)
                         }
                         is Response.Failure -> {
@@ -189,13 +195,7 @@ fun HomeWeatherScreen(
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
-fun getTheDayOfTheWeek(dateString: String?): String {
-    val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-    val outputFormatter = DateTimeFormatter.ofPattern("EEEE")
-    val date = LocalDateTime.parse(dateString, inputFormatter).toLocalDate()
-    return outputFormatter.format(date)
-}
+
 
 
 @Composable
@@ -216,7 +216,8 @@ fun SectionTitle(title: String) {
 @Composable
 fun WeatherCard(
     weatherData: WeatherResponse,
-    currentDate: String
+    currentDate: String,
+    currentDateTime: String
 ) {
     Box(
         contentAlignment = Alignment.TopCenter,
@@ -243,7 +244,7 @@ fun WeatherCard(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = currentDate,
+                    text = currentDate +" "+ formatNumberBasedOnLanguage(currentDateTime),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = BabyBlue,
@@ -253,7 +254,7 @@ fun WeatherCard(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "${weatherData.main?.temp}°${getUnit()}",
+                    text = "${formatNumberBasedOnLanguage(weatherData.main?.temp.toString())}°${getUnit()}",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     color = Blue,
@@ -281,10 +282,10 @@ fun WeatherCard(
                 Text(
                     text = buildAnnotatedString {
                         withStyle(style = SpanStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold)) {
-                            append("feels like ")
+                            append(stringResource(R.string.feels_like))
                         }
                         withStyle(style = SpanStyle(fontSize = 16.sp, fontWeight = FontWeight.Normal)) {
-                            append("/ ${weatherData.main?.feels_like}°${getUnit()} ")
+                            append(": ${formatNumberBasedOnLanguage(weatherData.main?.feels_like.toString())}°${getUnit()} ")
                         }
                     },
                     fontFamily = FontFamily.Monospace,
@@ -299,10 +300,11 @@ fun WeatherCard(
             contentScale = ContentScale.Fit
 ,
                     modifier = Modifier
-                .size(120.dp)
-             //   .clip(CircleShape)
+                        .size(120.dp)
+                        .padding(bottom = 20.dp)
+                        //   .clip(CircleShape)
                 .border(4.dp, Roze, CircleShape)
-                .shadow(8.dp, CircleShape)
+                        .shadow(8.dp, CircleShape)
         )
     }
 }
@@ -313,30 +315,35 @@ data class WeatherDetail(val icon: Int, val value: String, val label: String)
 @Composable
 fun WeatherDetails(weatherData: WeatherResponse) {
     val windunit :String =
-        if (sharedPreferencesUtils.getData(AppStrings().WINDUNITKEY) == AppStrings().MILE_PER_HOURKEY) "km/h" else "m/s"
+        if (sharedPreferencesUtils.getData(AppStrings().WINDUNITKEY) == AppStrings().MILE_PER_HOURKEY) stringResource(
+            R.string.km_h
+        ) else stringResource(R.string.m_s)
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 16.dp)
     ) {
         val weatherDetails = listOf(
-            WeatherDetail(R.drawable.humidity, "${weatherData.main?.humidity ?: 0}%",
+            WeatherDetail(R.drawable.humidity, "${formatNumberBasedOnLanguage(weatherData.main?.humidity ?: 0 .toString())}%",
                 stringResource(
                     R.string.humidity
                 )
             ),
-            WeatherDetail(R.drawable.wind, "${weatherData.wind?.speed ?: 0} $windunit",
+            WeatherDetail(R.drawable.wind, "${formatNumberBasedOnLanguage((weatherData.wind?.speed ?: 0.toString()).toString())} $windunit",
                 stringResource(R.string.wind)),
-            WeatherDetail(R.drawable.pressure, "${weatherData.main?.pressure ?: 0} hPa",
+            WeatherDetail(R.drawable.pressure,
+                stringResource(R.string.hpa, formatNumberBasedOnLanguage(weatherData.main?.pressure.toString())),
                 stringResource(
                     R.string.pressure
                 )
             ),
-            WeatherDetail(R.drawable.clouds, "${weatherData.clouds?.all ?: 0}%",
+            WeatherDetail(R.drawable.clouds, "${formatNumberBasedOnLanguage((weatherData.clouds?.all ?: 0 .toString()).toString())}%",
                 stringResource(R.string.clouds)),
-            WeatherDetail(R.drawable.sunrise, "${weatherData.sys?.sunrise ?: 0}",
+            WeatherDetail(R.drawable.sunrise,
+                formatNumberBasedOnLanguage(weatherData.sys?.sunrise.toString() ),
                 stringResource(R.string.sunrise)),
-            WeatherDetail(R.drawable.sunset, "${weatherData.sys?.sunset ?: 0}",
+            WeatherDetail(R.drawable.sunset,
+                formatNumberBasedOnLanguage(weatherData.sys?.sunset.toString()),
                 stringResource(R.string.sunset))
         )
 
@@ -418,7 +425,7 @@ fun HourlyItem(model: WeatherResponse) {
     Log.i("response", " mainnnnnn : ${model.weather?.get(0)?.main}")
     Card(
         modifier = Modifier
-            .width(90.dp)
+            .width(80.dp)
             .height(150.dp)
             .padding(4.dp)
             .background(
@@ -436,7 +443,7 @@ fun HourlyItem(model: WeatherResponse) {
             horizontalAlignment = Alignment.CenterHorizontally // Center elements horizontally
         ) {
             Text(
-                text = "${formatDateTime(model.dt_txt)}",
+                text = formatNumberBasedOnLanguage(formatDateTime(model.dt_txt) ?: "00:00"),
                 fontFamily = FontFamily.Monospace,
                 textAlign = TextAlign.Center,
                 fontSize = 16.sp,
@@ -453,7 +460,7 @@ fun HourlyItem(model: WeatherResponse) {
             )
 
             Text(
-                text = "${model.main?.temp}°${getUnit()}",
+                text = "${formatNumberBasedOnLanguage(model.main?.temp.toString())}°${getUnit()}",
                 fontFamily = FontFamily.Monospace,
                 textAlign = TextAlign.Center,
                 fontSize = 16.sp,
@@ -508,10 +515,10 @@ fun FutureDyItemCard(item: WeatherResponse) {
         Text(
             text = buildAnnotatedString {
                 withStyle(style = SpanStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold)) {
-                    append("${item.main?.temp_max}°${getUnit()}  ")
+                    append("${formatNumberBasedOnLanguage(item.main?.temp_max.toString())}°${getUnit()}  ")
                 }
                 withStyle(style = SpanStyle(fontSize = 13.sp, fontWeight = FontWeight.Normal)) {
-                    append("/ ${item.main?.temp_min}°${getUnit()} ")
+                    append("/ ${formatNumberBasedOnLanguage(item.main?.temp_min.toString())}°${getUnit()} ")
                 }
             },
             fontFamily = FontFamily.Monospace,

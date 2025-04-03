@@ -59,16 +59,23 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.weatherapp.R
 import com.example.weatherapp.Response
+import com.example.weatherapp.Utils.AppContext
+import com.example.weatherapp.Utils.constants.AppStrings
+import com.example.weatherapp.Utils.formatNumberBasedOnLanguage
 import com.example.weatherapp.Utils.formatTime
+import com.example.weatherapp.Utils.sharedprefrences.sharedPreferencesUtils
 import com.example.weatherapp.data.models.Reminder
 import com.example.weatherapp.features.alerts.viewmodel.AlertViewModel
 import com.example.weatherapp.features.home.View.LoadingIndicator
 import com.example.weatherapp.ui.theme.Roze
+import java.text.DateFormatSymbols
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneOffset
+import java.util.Locale
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -132,7 +139,7 @@ fun AlertsScreen(viewModel: AlertViewModel) {
                     }
                 }
                 is Response.Failure -> {
-                    Text(text = "Error: ${reminders.message}")
+                    Text(text = stringResource(R.string.error, reminders.message))
                 }
             }
 
@@ -192,8 +199,14 @@ fun AlertItem(reminder: Reminder, onRemove: () -> Unit) {
                     .weight(1f)
                     .padding(end = 7.dp)
             ) {
+
+                val (translatedDay, translatedMonth) = if (sharedPreferencesUtils.getData(AppStrings().LANGUAGEKEY) == "ar") {
+                    translateDayAndMonth(reminder.time.dayOfWeek.toString(), reminder.time.month.toString(), Locale("ar"))
+                } else {
+                    Pair(reminder.time.dayOfWeek.toString(), reminder.time.month.toString())
+                }
                 Text(
-                    text = "${reminder.time.dayOfWeek.toString()} ${reminder.time.dayOfMonth}/${reminder.time.month}",
+                    text = "${translatedDay.lowercase()} ${formatNumberBasedOnLanguage(reminder.time.dayOfMonth.toString())}/${translatedMonth.lowercase()}",
                     style = TextStyle(
                         color = Blue,
                         fontFamily = FontFamily.Monospace,
@@ -203,7 +216,7 @@ fun AlertItem(reminder: Reminder, onRemove: () -> Unit) {
                     modifier = Modifier.padding(start = 5.dp)
                 )
                 Text(
-                    text = "${reminder.time.hour}:${reminder.time.minute}  ${reminder.type}",
+                    text = "${formatNumberBasedOnLanguage(reminder.time.hour.toString())}:${formatNumberBasedOnLanguage(reminder.time.minute.toString())}  ${reminder.type}",
                     style = TextStyle(
                         color = Blue,
                         fontFamily = FontFamily.Monospace,
@@ -237,9 +250,9 @@ fun PopUpAlert(
 
     var selectedDate by remember { mutableStateOf(currentDate) }
     var selectedTime by remember { mutableStateOf(currentTime) }
-    var selectedReminderType by remember { mutableStateOf("ALARM") }
+    var selectedReminderType by remember { mutableStateOf("NOTIFICATION") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    val reminderTypes = listOf("ALARM", "NOTIFICATION")
+    val reminderTypes = listOf(stringResource(R.string.alarm), stringResource(R.string.notification))
     val snackbarHostState = remember { SnackbarHostState() }
 
     ModalBottomSheet(
@@ -253,7 +266,7 @@ fun PopUpAlert(
                 .verticalScroll(rememberScrollState())
         ) {
             Text(
-                text = "Reminder Type",
+                text = stringResource(R.string.reminder_type),
                 color = Blue,
                 fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.Bold,
@@ -280,7 +293,7 @@ fun PopUpAlert(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Image(
-                            painter =if (type == "ALARM") painterResource(id = R.drawable.alert) else painterResource(id = R.drawable.not),
+                            painter =if (type == stringResource(R.string.alarm)) painterResource(id = R.drawable.alert) else painterResource(id = R.drawable.not),
                             contentDescription = type,
                             modifier = Modifier.size(25.dp)
                         )
@@ -303,7 +316,7 @@ fun PopUpAlert(
                         onDateSelected = { selectedDate = it }
                     )
                 }
-                Spacer(modifier = Modifier.width(16.dp)) // Add space between date and time pickers
+                Spacer(modifier = Modifier.width(16.dp))
                 Box(modifier = Modifier.weight(1f)) {
                     TimePickerSection(
                         selectedTime = selectedTime,
@@ -331,7 +344,7 @@ fun PopUpAlert(
                 onClick = {
                     val selectedDateTime = LocalDateTime.of(selectedDate, selectedTime)
                     if (selectedDate == currentDate && selectedTime.isBefore(currentTime)) {
-                        errorMessage = "Please choose a future time"
+                        errorMessage = AppContext.getContext().getString(R.string.please_choose_a_future_time)
                     } else {
                         onConfirm(selectedDateTime, selectedReminderType)
                         onDismiss()
@@ -342,7 +355,7 @@ fun PopUpAlert(
                     .padding(bottom = 32.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Blue)
             ) {
-                Text("Set Reminder")
+                Text(stringResource(R.string.set_reminder))
             }
             SnackbarHost(
                 hostState = snackbarHostState,
@@ -382,7 +395,7 @@ fun DatePickerSection(
         .border(2.dp, Blue, shape = MaterialTheme.shapes.small)
         .padding(10.dp)) {
         Text(
-            text = "Date",
+            text = stringResource(R.string.date),
             fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.Bold,
             fontSize = 20.sp,
@@ -405,14 +418,14 @@ fun DatePickerSection(
 
             Text(
                 color = Blue,
-                text = selectedDate.toString(),
+                text = formatNumberBasedOnLanguage(selectedDate.toString()),
                 style = MaterialTheme.typography.bodyLarge
             )
         }
 
         if (showError) {
             Text(
-                text = "Please select today or a future date",
+                text = stringResource(R.string.please_select_today_or_a_future_date),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(top = 4.dp)
@@ -467,7 +480,7 @@ fun TimePickerSection(
         .border(2.dp, Blue, shape = MaterialTheme.shapes.small)
         .padding(10.dp)) {
         Text(
-            text = "Time",
+            text = stringResource(R.string.time),
             modifier = Modifier.padding(bottom = 4.dp),
             fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.Bold,
@@ -491,7 +504,7 @@ fun TimePickerSection(
             )
             Text(
                 color = Blue,
-                text = displayedTime,
+                text = formatNumberBasedOnLanguage(displayedTime),
                 style = MaterialTheme.typography.bodyLarge
             )
         }
@@ -512,12 +525,12 @@ fun TimePickerSection(
                         displayedTime = newTime.formatTime()
                         showTimePicker = false
                     }) {
-                        Text("OK")
+                        Text(stringResource(R.string.ok))
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showTimePicker = false }) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.cancel))
                     }
                 },
                 text = {
@@ -526,6 +539,18 @@ fun TimePickerSection(
             )
         }
     }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+fun translateDayAndMonth(dayOfWeek: String, month: String, locale: Locale): Pair<String, String> {
+    val symbols = DateFormatSymbols(locale)
+    val days = symbols.weekdays
+    val months = symbols.months
+
+    val translatedDay = days[DayOfWeek.valueOf(dayOfWeek).value]
+    val translatedMonth = months[java.time.Month.valueOf(month).value - 1]
+
+    return Pair(translatedDay, translatedMonth)
 }
 
 

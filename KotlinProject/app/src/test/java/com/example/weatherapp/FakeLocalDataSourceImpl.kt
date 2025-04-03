@@ -60,7 +60,7 @@ class FakeLocalDataSourceImpl : LocalDataSource {
         weatherForecastResponse: WeatherForecastResponse?
     ) {
         val weather = WeatherInHomeUsingRoom(lat, lon, weatherResponse, weatherForecastResponse)
-        weatherHomeData[Pair(lat, lon)] = weather  // Ensure it updates correctly
+        weatherHomeData[Pair(lat, lon)] = weather
     }
 
 

@@ -39,12 +39,8 @@ class DetailsViewModel(private val repo: Repo) : ViewModel() {
     private val _futureDays = MutableStateFlow<Response<List<WeatherResponse>>>(Response.Loading)
     val futureDays: StateFlow<Response<List<WeatherResponse>>> = _futureDays
 
-    // Utils
-    @RequiresApi(Build.VERSION_CODES.O)
-    val currentDate = fetchCurrentTime()
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    val currentTime = fetchformattedDateTime()
+
 
     private val forecastProcessor = ForecastProcessor()
     private var lastLat: Double = 0.0

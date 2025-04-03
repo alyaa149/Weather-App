@@ -13,9 +13,6 @@ object RetrofitHelper {
     }
 
     val service: WeatherService by lazy {
-        ///lazy-->  Without lazy, retrofitInstance would be initialized
-        // as soon as RetrofitHelper is loaded, even if it's never used.
-        // With lazy, it is only created when service is accessed for the first time.
         retrofitInstance.create(WeatherService::class.java)
     }
 }

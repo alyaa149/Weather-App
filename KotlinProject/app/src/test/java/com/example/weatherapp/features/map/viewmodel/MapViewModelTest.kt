@@ -7,6 +7,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.weatherapp.Response
 import com.example.weatherapp.data.models.City
 import com.example.weatherapp.data.repo.Repo
+import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -21,27 +22,28 @@ import org.junit.runner.RunWith
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
-@OptIn(ExperimentalCoroutinesApi::class)
+@ExperimentalCoroutinesApi
 class MapViewModelTest {
-    @get:Rule
-    val instantTaskExecutorRule = InstantTaskExecutorRule()
-
     private lateinit var viewModel: MapViewModel
     private lateinit var repo: Repo
+    private val testDispatcher = StandardTestDispatcher()
 
     @Before
     fun setup() {
-        Dispatchers.setMain(StandardTestDispatcher())
+        Dispatchers.setMain(testDispatcher) // Replace Main dispatcher
         repo = mockk(relaxed = true)
         viewModel = MapViewModel(repo)
     }
@@ -49,35 +51,22 @@ class MapViewModelTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
+        // Clean up
     }
 
-//    @Test
-//    fun fetchWeatherAndInsert_updatesStateOnSuccess() = runTest {
-//        // Given
-//        val lat = 40.7128
-//        val lon = -74.0060
-//        val address = "Alexandria"
-//
-//        // When
-//        viewModel.fetchWeatherAndInsert(lat, lon, address)
-//
-//        // Then
-//        val state = viewModel.currentDetails.drop(1).first()
-//       assert(state is Response.Success)
-//    }
-
     @Test
-    fun fetchWeatherAndInsert_UpdatesStateOnFailure() = runTest {
-        // Given
+    fun fetchWeatherAndInsert_UpdatesStateOnFailure_invalidCoordinatesfailureState() = runTest {
+        // Given: Invalid latitude and longitude
         val lat = Double.NaN
         val lon = Double.NaN
-        val address = "Alexandria"
 
-        // When
-        viewModel.fetchWeatherAndInsert(lat, lon, address)
+        // When: Fetch weather with invalid coordinates
+        viewModel.fetchWeatherAndInsert(lat, lon, "Alexandria")
+        testDispatcher.scheduler.advanceUntilIdle() //verify that the coroutine is finished
 
-        // Then
-        val state = viewModel.currentDetails.first()
-        assert(state is Response.Failure)
+        // Then: Verify the state is a failure
+        val state = viewModel.currentDetails.value
+        assertTrue(state is Response.Failure)
+
     }
 }

@@ -13,6 +13,7 @@
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.CHANGE_CONFIGURATION"/>
 
     <application
         android:name=".Utils.MyAppContext"
@@ -31,14 +32,14 @@
             android:label="@string/title_activity_weather_alert"
             android:theme="@style/Theme.WeatherApp" />
 
-        <receiver
-            android:name=".features.alerts.notificationnsandalerts.WeatherAlertReceiver"
-            android:exported="false" />
+<!--        <receiver-->
+<!--            android:name=".features.alerts.notificationnsandalerts.WeatherAlertReceiver"-->
+<!--            android:exported="false" />-->
 
-        <service
-            android:name=".features.alerts.notificationnsandalerts.WeatherAlertService"
-            android:permission="android.permission.FOREGROUND_SERVICE"
-            />
+<!--        <service-->
+<!--            android:name=".features.alerts.notificationnsandalerts.WeatherAlertService"-->
+<!--            android:permission="android.permission.FOREGROUND_SERVICE"-->
+<!--            />-->
 
         <provider
             android:name="androidx.startup.InitializationProvider"

@@ -45,7 +45,7 @@ class LocalDataSourceImplTest{
         database.close()
     }
     @Test
-    fun deleteFavCity() = runTest {
+    fun deleteWeather_cityDeletedSuccessfully() = runTest {
         // Given: Insert a city first
         val city = City(
             id = 3,
@@ -76,7 +76,7 @@ class LocalDataSourceImplTest{
         assertNull(deletedCity) // City should be removed
     }
     @Test
-    fun getWeatherByLatLon() = runTest {
+    fun getWeatherFromLatLonOffline_weatherRetrievedSuccessfully() = runTest {
         // Given: Insert a city first
         val city = City(
             id = 4,
@@ -103,7 +103,7 @@ class LocalDataSourceImplTest{
         // Then: Verify correct retrieval
         assertNotNull(retrievedCity)
         assertThat(retrievedCity.address, `is`("San Francisco"))
-        assertThat(retrievedCity.weatherResponse.weather?.first()?.main, `is`("Foggy")) // Check weather condition
+        assertThat(retrievedCity.weatherResponse.weather?.first()?.main, `is`("Foggy"))
     }
 
 

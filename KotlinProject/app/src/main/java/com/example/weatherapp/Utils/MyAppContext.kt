@@ -20,4 +20,7 @@ object AppContext {
         this.context = context.applicationContext
     }
     fun getContext(): Context = context
+    fun updateContext(newContext: Context) {
+        context = newContext
+    }
 }

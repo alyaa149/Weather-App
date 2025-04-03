@@ -40,7 +40,7 @@ class WeatherDaoTest {
     fun tearDown() =database.close()
 
     @Test
-    fun insertFavCityLocationAndGetTaskByIdCity() = runTest {
+    fun insertWeather_insertFavCity_getFavCitySuccessfully() = runTest {
         // Given
         val weatherResponse = WeatherResponse(
             main = Main(temp = 25.0, temp_min = 20.0, temp_max = 30.0, pressure = "1013", humidity = "60", sea_level = "1013", grnd_level = "998", feels_like = "25.0"),
@@ -65,14 +65,14 @@ class WeatherDaoTest {
         dao.insertWeather(favCity)
 
         // Then: Get the inserted city
-        val result = dao.getAllFavs().first() // Collects only the first emission
+        val result = dao.getAllFavs().first()
         val insertedCity = result.find { it.id == favCity.id }
 
         assertNotNull(insertedCity)
         assertThat(insertedCity!!.id, `is`(favCity.id))
     }
     @Test
-    fun updateTaskt() = runTest {
+    fun insertWeather_updateFavCity_cityUpdatedSuccessfully() = runTest {
         // Given (Insert first city)
         val weatherResponse = WeatherResponse(
             main = Main(temp = 25.0, temp_min = 20.0, temp_max = 30.0, pressure = "1013", humidity = "60", sea_level = "1013", grnd_level = "998", feels_like = "25.0"),
@@ -96,7 +96,7 @@ class WeatherDaoTest {
 
         // When (Update city at same lat/lon)
         val updatedCity = City(
-            id = 700, // KEEP THE SAME ID (since REPLACE keeps old ID)
+            id = 700,
             address = "address2",
             lat = 31.27077,
             lon = 30.007815,
@@ -108,7 +108,7 @@ class WeatherDaoTest {
         val result = dao.getAllFavs().first() // Get latest data
 
         val insertedCity = result.find { it.lat == updatedCity.lat && it.lon == updatedCity.lon }
-        assertNotNull(insertedCity) // Ensure the city exists
+        assertNotNull(insertedCity)
 
         // Check if updated data is correct
         assertThat(insertedCity!!.id, `is`(700)) // ID should remain the same

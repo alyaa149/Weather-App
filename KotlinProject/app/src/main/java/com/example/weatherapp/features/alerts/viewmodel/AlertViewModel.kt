@@ -1,6 +1,7 @@
 package com.example.weatherapp.features.alerts.viewmodel
 
 import android.app.AlarmManager
+import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -15,7 +16,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import androidx.work.await
 import androidx.work.workDataOf
+import com.example.weatherapp.R
 import com.example.weatherapp.Response
 import com.example.weatherapp.Utils.AppContext
 import com.example.weatherapp.Utils.MyAppContext
@@ -31,11 +34,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -65,7 +70,10 @@ class AlertViewModel(private val repo: Repo,private val workManager: WorkManager
                             repo.deleteReminder(expiredReminder.id)
                             Log.i("response", "Deleted expired reminder: ${expiredReminder.id}")
                         }
-                        _eventFlow.emit("${expired.size} expired reminders cleared")
+                        _eventFlow.emit(
+                            context.getString(
+                                R.string.expired_reminders_cleared,
+                            ))
                     }
 
                     _reminders.value = Response.Success(active)
@@ -73,7 +81,11 @@ class AlertViewModel(private val repo: Repo,private val workManager: WorkManager
             } catch (e: Exception) {
                 _reminders.value = Response.Failure(e)
                 Log.e("response", "Fetch error: ${e.message}")
-                _eventFlow.emit("Error fetching reminders: ${e.localizedMessage}")
+                _eventFlow.emit(
+                    context.getString(
+                        R.string.error_fetching_reminders,
+                        e.localizedMessage
+                    ))
             }
         }
     }
@@ -99,8 +111,8 @@ class AlertViewModel(private val repo: Repo,private val workManager: WorkManager
                 fetchAlerts()
 
                 val snackBarResult = snackbarHostState.showSnackbar(
-                            message = "Reminder added",
-                            actionLabel = "Undo",
+                            message = context.getString(R.string.reminder_added),
+                            actionLabel = context.getString(R.string.undo),
                             duration = SnackbarDuration.Short
                         )
 
@@ -125,16 +137,21 @@ class AlertViewModel(private val repo: Repo,private val workManager: WorkManager
         snackbarHostState: SnackbarHostState,
         coroutineScope: CoroutineScope
     ) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             try {
-                workManager.cancelAllWorkByTag("notification_worker_${reminder.id}").result.addListener(
-                    { Log.d("response", "Cancellation completed for ${reminder.id}") },
-                    { Log.e("response", "Cancellation failed for ${reminder.id}") }
-                )
-                repo.deleteReminder(reminder.id)
-                Log.i("response", "Deleted reminder")
+                workManager.cancelAllWorkByTag("reminder_${reminder.id}").await()
+                Log.d("response", "Work cancelled for reminder ${reminder.id}")
 
-                fetchAlerts()
+                val notificationId = reminder.id.hashCode()
+                val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE)
+                        as NotificationManager
+                notificationManager.cancel(notificationId)
+                Log.d("response", "Notification cancelled with ID: $notificationId")
+
+                withContext(Dispatchers.IO) {
+                    repo.deleteReminder(reminder.id)
+                    fetchAlerts()
+                }
 
                 coroutineScope.launch {
                     val result = snackbarHostState.showSnackbar(
@@ -144,45 +161,44 @@ class AlertViewModel(private val repo: Repo,private val workManager: WorkManager
                     )
 
                     if (result == SnackbarResult.ActionPerformed) {
-                        addAlert(reminder, snackbarHostState, coroutineScope)
+                        scheduleNotification(reminder)
                     }
-
                 }
 
             } catch (e: Exception) {
+                Log.e("response", "Error deleting reminder: ${e.message}")
                 _reminders.value = Response.Failure(e)
-                Log.e("response", "Delete error: ${e.message}")
             }
         }
     }
-
-
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun scheduleNotification(reminder: Reminder) {
         val now = LocalDateTime.now()
         val duration = Duration.between(now, reminder.time).toMillis()
-        Log.i("response", "Scheduling notification: Duration = $duration ms")
 
         if (duration <= 0) {
             Log.e("response", "Scheduled time is in the past. Skipping notification.")
             return
         }
+
+        val notificationId = reminder.id.hashCode()
+
         val data = workDataOf(
-            "title" to "Weather Alert",
+            "title" to context.getString(R.string.weather_alert),
+            "notification_id" to notificationId
         )
-        Log.i("response", "Weather details: ${data.getString("message")}")
 
         val notificationRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
-            .addTag("notification_worker_${reminder.id}")
+            .addTag("reminder_${reminder.id}")
             .setInitialDelay(duration, TimeUnit.MILLISECONDS)
             .setInputData(data)
             .build()
 
         workManager.enqueue(notificationRequest)
-        Log.i("response", "Notification scheduled successfully. ${fetchCurrentTime()}")
+        Log.i("response", "Notification scheduled with ID: $notificationId")
     }
-//    private val scheduler = WeatherAlertScheduler(AppContext.getContext())
+
 }
 
 

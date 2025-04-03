@@ -7,11 +7,16 @@ import android.content.SharedPreferences
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
+import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.example.weatherapp.R
 import com.example.weatherapp.Utils.constants.AppStrings
 import com.example.weatherapp.Utils.fetchCurrentTime
+import com.example.weatherapp.Utils.formatNumberBasedOnLanguage
 import com.example.weatherapp.Utils.getDrawableResourceId
 import com.example.weatherapp.Utils.getUnit
 import com.example.weatherapp.Utils.sharedprefrences.sharedPreferencesUtils
@@ -23,78 +28,116 @@ import com.example.weatherapp.data.remote.RetrofitHelper
 import com.example.weatherapp.data.repo.RepoImpl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 
 
-class NotificationWorker (val context: Context, val params: WorkerParameters) : CoroutineWorker(context, params){
+class NotificationWorker(
+    private val context: Context,
+    workerParams: WorkerParameters
+) : CoroutineWorker(context, workerParams) {
+
     @RequiresApi(Build.VERSION_CODES.O)
     override suspend fun doWork(): Result {
-         val _currentDetails = MutableStateFlow<WeatherResponse?>(null)
-         val currentDetails: StateFlow<WeatherResponse?> = _currentDetails
-        Log.i("response", "Worker started")
+        Log.i("NotificationWorker", "Worker started with ID: $id")
+
+        if (isStopped) {
+            Log.i("NotificationWorker", "Worker stopped before execution")
+            return Result.failure()
+        }
+
         return try {
-            if (isStopped) {
-                return Result.failure()
-            }
-            val repo =
-                RepoImpl(
-                    RemoteDataSourceImpl(RetrofitHelper.service),
-                    LocalDataSourceImpl(
-                        WeatherDataBase.getInstance(context).getWeatherDao(),
-                        WeatherDataBase.getInstance(context).getReminderDao()
-                    ),
-                )
-            try {
-                repo.fetchWeatherFromLatLonUnitLang(
-                    sharedPreferencesUtils.getData(AppStrings().LATITUDEKEY)?.toDouble() ?: 0.0,
-                    sharedPreferencesUtils.getData(AppStrings().LONGITUDEKEY)?.toDouble() ?: 0.0,
-                    sharedPreferencesUtils.getData(AppStrings().TEMPUNITKEY) ?: "metric",
-                    sharedPreferencesUtils.getData(AppStrings().LANGUAGEKEY) ?: "en"
-                ).collect { response ->
-                    _currentDetails.value = response
-                    Log.i("AlertViewModel", "Weather details updated: $response")
-                }
-            } catch (e: Exception) {
-                Log.e("AlertViewModel", "Error fetching weather: ${e.message}")
-            }
+            val notificationId = inputData.getInt("notification_id", id.hashCode())
+            val title = inputData.getString("title") ?: context.getString(R.string.weather_alert)
 
-            val pic = currentDetails.value?.weather?.get(0)?.main ?: "Clear"
-            val title = inputData.getString("title") ?: "Weather Alert"
-            val message = " the wind is ${currentDetails.value?.wind?.speed  ?: "0"} ${sharedPreferencesUtils.getData(AppStrings().WINDUNITKEY)} and the temperature is ${currentDetails.value?.main?.temp ?: "0"}°${getUnit()}"
+            val weatherResponse = fetchWeatherData()
+            val weatherCondition = weatherResponse?.weather?.firstOrNull()?.main ?: "Clear"
 
-            showNotification(pic, title, message)
-            Log.i("response", "Received data in managerrr: $title - $message ${fetchCurrentTime()}")
+            val message = buildWeatherMessage(weatherResponse)
+
+            showNotification(
+                id = notificationId,
+                weatherCondition = weatherCondition,
+                title = title,
+                message = message
+            )
+
+            Log.i("NotificationWorker", "Notification shown successfully")
             Result.success()
-        }catch (e: Exception) {
-            Log.e("response", "Error showing notification: ${e.message}")
+        } catch (e: Exception) {
+            Log.e("NotificationWorker", "Error in doWork: ${e.message}")
             Result.failure()
-
         }
     }
 
-    private fun showNotification(pic:String?, title: String, message: String) {
-        val channelId = "weather_alert_channel"
-        val notificationManager =
-            applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId, "Weather Alerts",
-                NotificationManager.IMPORTANCE_HIGH
+    private suspend fun fetchWeatherData(): WeatherResponse? {
+        return try {
+            val repo = RepoImpl(
+                RemoteDataSourceImpl(RetrofitHelper.service),
+                LocalDataSourceImpl(
+                    WeatherDataBase.getInstance(context).getWeatherDao(),
+                    WeatherDataBase.getInstance(context).getReminderDao()
+                )
             )
-            notificationManager.createNotificationChannel(channel)
-        }
 
-        val notification = NotificationCompat.Builder(applicationContext, channelId)
-            .setSmallIcon(getDrawableResourceId(pic))
+            repo.fetchWeatherFromLatLonUnitLang(
+                lat = sharedPreferencesUtils.getData(AppStrings().LATITUDEKEY)?.toDouble() ?: 0.0,
+                lon = sharedPreferencesUtils.getData(AppStrings().LONGITUDEKEY)?.toDouble() ?: 0.0,
+                units = sharedPreferencesUtils.getData(AppStrings().TEMPUNITKEY) ?: "metric",
+                lang = sharedPreferencesUtils.getData(AppStrings().LANGUAGEKEY) ?: "en"
+            ).first()
+        } catch (e: Exception) {
+            Log.e("NotificationWorker", "Weather fetch error: ${e.message}")
+            null
+        }
+    }
+
+    private fun buildWeatherMessage(weather: WeatherResponse?): String {
+        return context.getString(
+            R.string.the_wind_is_and_the_temperature_is,
+            formatNumberBasedOnLanguage(weather?.wind?.speed.toString()),
+            sharedPreferencesUtils.getData(AppStrings().WINDUNITKEY),
+            formatNumberBasedOnLanguage(weather?.main?.temp.toString()),
+            getUnit()
+        )
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun showNotification(
+        id: Int,
+        weatherCondition: String,
+        title: String,
+        message: String
+    ) {
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE)
+                as NotificationManager
+
+        // Create notification channel (required for Android O+)
+        createNotificationChannel(notificationManager)
+
+        val notification = NotificationCompat.Builder(context, "reminder_channel")
             .setContentTitle(title)
             .setContentText(message)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setSmallIcon(getDrawableResourceId(weatherCondition))
             .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .build()
 
-        notificationManager.notify(1, notification)
-        Log.i("response", "Notification sent successfully!")
-
+        notificationManager.notify(id, notification)
     }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun createNotificationChannel(notificationManager: NotificationManager) {
+        val channel = NotificationChannel(
+            "reminder_channel",
+            "Weather Reminders",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "Weather alert notifications"
+            enableLights(true)
+        }
+
+        notificationManager.createNotificationChannel(channel)
+    }
+
 
 }

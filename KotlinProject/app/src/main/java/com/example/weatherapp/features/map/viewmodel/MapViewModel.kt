@@ -11,7 +11,9 @@ import androidx.lifecycle.viewModelScope
 import com.example.weatherapp.Response
 import com.example.weatherapp.Utils.AppContext
 import com.example.weatherapp.Utils.constants.AppStrings
+import com.example.weatherapp.Utils.getFullAddress
 import com.example.weatherapp.Utils.sharedprefrences.sharedPreferencesUtils
+import com.example.weatherapp.Utils.toLatLng
 import com.example.weatherapp.data.models.City
 import com.example.weatherapp.data.models.WeatherResponse
 import com.example.weatherapp.data.repo.Repo
@@ -57,7 +59,7 @@ class MapViewModel(private val repo: Repo) : ViewModel() {
                     lon,
                     sharedPreferencesUtils.getData(AppStrings().TEMPUNITKEY) ?: "metric",
                     sharedPreferencesUtils.getData(AppStrings().LANGUAGEKEY) ?: "en"
-                ).collectLatest { response ->  //Cancels previous collections
+                ).collectLatest { response ->
                     _currentDetails.value = Response.Success(response)
                     insertWeather(
                         City(
@@ -150,10 +152,6 @@ class MapViewModel(private val repo: Repo) : ViewModel() {
     }
 
 
-    private fun Address.toLatLng() = LatLng(latitude, longitude)
-    private fun Address.getFullAddress(): String {
-        return (0..maxAddressLineIndex).joinToString { getAddressLine(it) }
-    }
 }
 class MapViewModelFactory(private val repo: Repo) : ViewModelProvider.Factory {
     @RequiresApi(Build.VERSION_CODES.O)

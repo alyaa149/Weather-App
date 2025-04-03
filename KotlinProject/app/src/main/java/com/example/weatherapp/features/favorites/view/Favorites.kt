@@ -65,6 +65,8 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.weatherapp.R
 import com.example.weatherapp.Response
 import com.example.weatherapp.Utils.NetworkUtils
+import com.example.weatherapp.Utils.fetchCurrentTime
+import com.example.weatherapp.Utils.fetchformattedDateTime
 import com.example.weatherapp.features.home.View.FutureDaysForecast
 import com.example.weatherapp.features.home.View.HourlyForecast
 import com.example.weatherapp.features.home.View.LoadingIndicator
@@ -245,7 +247,8 @@ fun FavoritesDetailsScreen(
     val uiState = viewModel.currentDetails.collectAsStateWithLifecycle().value
     val hourlyForecast = viewModel.nextHoursDetails.collectAsStateWithLifecycle().value
     val futureDays = viewModel.futureDays.collectAsStateWithLifecycle().value
-    val currentDate = viewModel.currentDate
+    val currentDate = fetchCurrentTime()
+    val currentDateTime = fetchformattedDateTime()
 
     val scope = rememberCoroutineScope()
     var showError by remember { mutableStateOf<String?>(null) }
@@ -304,12 +307,11 @@ fun FavoritesDetailsScreen(
                     is Response.Loading -> LoadingIndicator()
                     is Response.Success -> {
                         val weatherData = uiState.data
-                        WeatherCard(weatherData, currentDate)
+                        WeatherCard(weatherData, currentDate,currentDateTime)
                         WeatherDetails(weatherData)
                     }
 
                     is Response.Failure -> {
-                        // Error is shown in the dialog
                     }
                 }
             }
@@ -339,7 +341,6 @@ fun FavoritesDetailsScreen(
                     }
 
                     is Response.Failure -> {
-                        // Error is shown in the dialog
                     }
                 }
             }

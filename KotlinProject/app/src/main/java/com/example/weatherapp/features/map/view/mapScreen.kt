@@ -4,6 +4,7 @@ import android.location.Address
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 
@@ -202,21 +203,36 @@ fun ConfirmButton(
     back: () -> Unit,
     mapViewModel: MapViewModel
 ) {
-    Button(
-        colors = ButtonDefaults.buttonColors(containerColor = Blue),
-        onClick = {
-            selectedLocation?.let { latLng ->
-                if (source == "from_favorites") {
-                    mapViewModel.fetchWeatherAndInsert(latLng.latitude, latLng.longitude, updatedAddress)
-                }
-                back()
-            }
-        },
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .padding(top = 550.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Bottom
     ) {
-        Text(stringResource(R.string.confirm_location))
+        Button(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Blue),
+            onClick = {
+                selectedLocation?.let { latLng ->
+                    if (source == "from_favorites") {
+                        mapViewModel.fetchWeatherAndInsert(
+                            latLng.latitude,
+                            latLng.longitude,
+                            updatedAddress
+                        )
+                    }
+                    back()
+                }
+            },
+        ) {
+            Text(stringResource(R.string.confirm_location))
+        }
     }
 }
-
 
 private fun Address.getFullAddress(): String {
     return (0..maxAddressLineIndex).joinToString(", ") { getAddressLine(it) }

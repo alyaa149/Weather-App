@@ -1,5 +1,6 @@
 package com.example.weatherapp.features.Settings.View
 
+import android.app.Activity
 import android.util.Log
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -33,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -40,18 +42,25 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.ActivityCompat.recreate
 import androidx.navigation.NavHostController
 import com.example.weatherapp.R
+import com.example.weatherapp.Utils.AppContext
 import com.example.weatherapp.Utils.constants.AppStrings
 import com.example.weatherapp.Utils.Location.Location
+import com.example.weatherapp.Utils.MyAppContext
+import com.example.weatherapp.Utils.formatNumberBasedOnLanguage
+import com.example.weatherapp.Utils.restartActivity
 import com.example.weatherapp.ui.theme.BabyBlue
 import com.example.weatherapp.ui.theme.Blue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import com.example.weatherapp.Utils.sharedprefrences.sharedPreferencesUtils
+import com.example.weatherapp.applyLanguage
 import com.example.weatherapp.features.Settings.ViewModel.SettingsViewModel
 import com.example.weatherapp.ui.theme.Roze
+import java.util.Locale
 
 @Composable
 fun SettingsUI(
@@ -106,12 +115,12 @@ fun SettingsUI(
         )
 
         // Location Selection
-        SettingSection(title = "Choose Location") {
+        SettingSection(title = stringResource(R.string.choose_location)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(
                     selected = selectedLocation == "GPS",
                     onClick = {
-                        selectedLocation = "GPS"
+                        selectedLocation = AppContext.getContext().getString(R.string.gps)
                         weatherPreferences.putData(AppStrings().LOCATIONKEY, "GPS")
 
                         CoroutineScope(Dispatchers.Main).launch {
@@ -134,67 +143,99 @@ fun SettingsUI(
             }
         }
 
-        Text(text = stringResource(R.string.latitude, selectedLocationLat), color = Color.White, fontSize = 16.sp)
-        Text(text = stringResource(R.string.longitude, selectedLocationLon), color = Color.White, fontSize = 16.sp)
+        Text(text = stringResource(R.string.latitude, formatNumberBasedOnLanguage( selectedLocationLat)), color = Color.White, fontSize = 16.sp)
+        Text(text = stringResource(R.string.longitude,formatNumberBasedOnLanguage(selectedLocationLon)), color = Color.White, fontSize = 16.sp)
 
         SettingDropdown(
             title = stringResource(R.string.temperature_unit),
-            picPath = R.drawable.tempunit,
             items = listOf(
                 stringResource(R.string.kelvin),
                 stringResource(R.string.celsius),
-                "Fahrenheit"
+                stringResource(R.string.fahrenheit)
             ),
-            selectedItem = selectedTempUnit
-        ) {
-            selectedTempUnit = it
-            weatherPreferences.putData(
-                AppStrings().TEMPUNITKEY,
-                when (it) {
-                    "Celsius" -> {
-                        selectedWindUnit = "meter/second"
-                        weatherPreferences.putData(AppStrings().WINDUNITKEY, AppStrings().METER_PER_SECONDKEY)
-                        AppStrings().CELSIUSKEY}
+            itemValues = listOf(
+                AppStrings().KELVINKEY,
+                AppStrings().CELSIUSKEY,
+                AppStrings().FAHRENHEITKEY
+            ),
+            selectedItem = when (selectedTempUnit) {
+                AppStrings().KELVINKEY -> stringResource(R.string.kelvin)
+                AppStrings().CELSIUSKEY -> stringResource(R.string.celsius)
+                AppStrings().FAHRENHEITKEY -> stringResource(R.string.fahrenheit)
+                else -> stringResource(R.string.celsius)
+            }
+        ) { selectedKey ->
+            selectedTempUnit = selectedKey
+            weatherPreferences.putData(AppStrings().TEMPUNITKEY, selectedKey)
 
-                    "Fahrenheit" -> {
-                        selectedWindUnit = "mile/hour"
-                        weatherPreferences.putData(AppStrings().WINDUNITKEY, AppStrings().MILE_PER_HOURKEY)
-                        AppStrings().FAHRENHEITKEY
-                    }
-                    else -> {
-                        selectedWindUnit = "meter/second"
-                        weatherPreferences.putData(AppStrings().WINDUNITKEY, AppStrings().METER_PER_SECONDKEY)
-                        AppStrings().KELVINKEY}
-                }
-            )
+            // Automatically set corresponding wind unit
+            val windUnit = when (selectedKey) {
+                AppStrings().FAHRENHEITKEY -> AppStrings().MILE_PER_HOURKEY
+                else -> AppStrings().METER_PER_SECONDKEY
+            }
+            selectedWindUnit = windUnit
+            weatherPreferences.putData(AppStrings().WINDUNITKEY, windUnit)
         }
 
         SettingDropdown(
             title = stringResource(R.string.wind_speed_unit),
-            picPath = R.drawable.windsettings,
-            items = listOf(stringResource(R.string.meter_second), stringResource(R.string.mile_hour)),
-            selectedItem = selectedWindUnit
-        ) {
-            if(it == "mile/hour"){
-                selectedTempUnit = "Fahrenheit"
-                weatherPreferences.putData(AppStrings().TEMPUNITKEY, AppStrings().FAHRENHEITKEY)
-            }else{
-                selectedTempUnit = "Celsius"
-                weatherPreferences.putData(AppStrings().TEMPUNITKEY, AppStrings().CELSIUSKEY)
+            items = listOf(
+                stringResource(R.string.meter_second),
+                stringResource(R.string.mile_hour)
+            ),
+            itemValues = listOf(
+                AppStrings().METER_PER_SECONDKEY,
+                AppStrings().MILE_PER_HOURKEY
+            ),
+            selectedItem = when (selectedWindUnit) {
+                AppStrings().MILE_PER_HOURKEY -> stringResource(R.string.mile_hour)
+                else -> stringResource(R.string.meter_second)
             }
-            selectedWindUnit = it
-            weatherPreferences.putData(AppStrings().WINDUNITKEY, if (it == "meter/second") AppStrings().METER_PER_SECONDKEY else AppStrings().MILE_PER_HOURKEY)
-        }
+        ) { selectedKey ->
+            selectedWindUnit = selectedKey
+            weatherPreferences.putData(AppStrings().WINDUNITKEY, selectedKey)
 
+            val tempUnit = when (selectedKey) {
+                AppStrings().MILE_PER_HOURKEY -> AppStrings().FAHRENHEITKEY
+                else -> AppStrings().CELSIUSKEY
+            }
+            selectedTempUnit = tempUnit
+            weatherPreferences.putData(AppStrings().TEMPUNITKEY, tempUnit)
+        }
         SettingDropdown(
             title = stringResource(R.string.language),
-            picPath = R.drawable.language,
-            items = listOf(stringResource(R.string.english), stringResource(R.string.arabic)),
-            selectedItem = if (selectedLanguage == AppStrings().ENGLISHKEY) stringResource(R.string.english) else stringResource(R.string.arabic)
-        ) {
-            val newLanguage = if (it == "English") AppStrings().ENGLISHKEY else AppStrings().ARABICKEY
-            viewModel.updateLanguage(newLanguage)
+            items = listOf(
+                stringResource(R.string.english),
+                stringResource(R.string.arabic),
+                stringResource(R.string.defaultt)
+            ),
+            itemValues = listOf("en", "ar", "default"),
+            selectedItem = when (selectedLanguage) {
+                "ar" -> stringResource(R.string.arabic)
+                "en" -> stringResource(R.string.english)
+                else -> stringResource(R.string.defaultt)
+            }
+        ) { languageCode ->
+            Log.i("language", "Selected language: $languageCode")
+
+            if (languageCode == "default") {
+                sharedPreferencesUtils.putData("settings_language", "default")
+                val defaultLanguage = Locale.getDefault().language
+                Log.i("language", "Applying system default: $defaultLanguage")
+                sharedPreferencesUtils.putData(AppStrings().LANGUAGEKEY, defaultLanguage)
+                applyLanguage(defaultLanguage)
+            } else {
+                sharedPreferencesUtils.putData("settings_language", "normal")
+                sharedPreferencesUtils.putData(AppStrings().LANGUAGEKEY, languageCode)
+                Log.i("language", "Applying selected language: $languageCode")
+                applyLanguage(languageCode)
+            }
+
+            restartActivity() // Restart only after updating language
         }
+
+
+
     }
 }
 
@@ -219,8 +260,8 @@ fun SettingSection(title: String ,content: @Composable () -> Unit) {
 @Composable
 fun SettingDropdown(
     title: String,
-    picPath: Int,
     items: List<String>,
+    itemValues: List<String>, // Add this parameter for the actual values
     selectedItem: String,
     onItemSelected: (String) -> Unit
 ) {
@@ -244,9 +285,11 @@ fun SettingDropdown(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = selectedItem,fontFamily = FontFamily.Monospace,
+                Text(
+                    text = selectedItem, fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold,
-                    color = Blue,)
+                    color = Blue,
+                )
                 Icon(
                     imageVector = Icons.Default.ArrowDropDown,
                     contentDescription = "Dropdown Arrow",
@@ -261,7 +304,7 @@ fun SettingDropdown(
                 modifier = Modifier.background(Color.Gray.copy(alpha = 0.2f)),
                 onDismissRequest = { expanded = false }
             ) {
-                items.forEach { item ->
+                items.forEachIndexed { index, item ->
                     DropdownMenuItem(
                         text = {
                             Text(
@@ -269,9 +312,10 @@ fun SettingDropdown(
                                 fontFamily = FontFamily.Monospace,
                                 fontWeight = FontWeight.Bold,
                                 color = Blue,
-                            ) },
+                            )
+                        },
                         onClick = {
-                            onItemSelected(item)
+                            onItemSelected(itemValues[index])
                             expanded = false
                         }
                     )
@@ -280,5 +324,3 @@ fun SettingDropdown(
         }
     }
 }
-
-

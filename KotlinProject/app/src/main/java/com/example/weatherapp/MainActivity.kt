@@ -1,9 +1,11 @@
 package com.example.weatherapp
 
 import android.Manifest
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.location.Location
 import android.location.LocationManager
 import android.net.Uri
@@ -55,6 +57,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import com.google.android.gms.location.LocationServices
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -64,43 +67,60 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.drawscope.Fill
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.weatherapp.Utils.AppContext
+import com.example.weatherapp.Utils.constants.AppStrings
+import com.example.weatherapp.Utils.restartActivity
+import com.example.weatherapp.Utils.sharedprefrences.sharedPreferencesUtils
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 
 class MainActivity : ComponentActivity() {
-     val REQUEST_LOCATION_CODE = 2005
+     private val REQUEST_LOCATION_CODE = 2005
 
-    val fusedLocationClient by lazy {
+    private val fusedLocationClient by lazy {
         LocationServices.getFusedLocationProviderClient(this)
     }
-     lateinit var locationState: MutableState<android.location.Location>
+     private lateinit var locationState: MutableState<android.location.Location>
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val savedLanguage = sharedPreferencesUtils.getData(AppStrings().LANGUAGEKEY) ?: "en"
+        if (sharedPreferencesUtils.getData("settings_language") == "default") {
+            applyLanguage(Locale.getDefault().language)
+        } else {
+            applyLanguage(savedLanguage)
+        }
+
+
         setContent {
             locationState = remember { mutableStateOf(
                 Location(
                     LocationManager.GPS_PROVIDER
                 )
             ) }
-        AppNavigation()
+           val currentLanguage by rememberUpdatedState(sharedPreferencesUtils.getData(AppStrings().LANGUAGEKEY))
+
+            LaunchedEffect(currentLanguage) {
+              //  restartActivity()
+            }
+                AppNavigation()
+
 
 
         }
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(AppContext.getContext())) {
-//            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-//                Uri.parse("package:${AppContext.getContext().packageName}"))
-//            AppContext.getContext().startActivity(intent)
-//        }
-
     }
 
     override fun onStart() {
@@ -179,7 +199,58 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+    override fun attachBaseContext(newBase: Context) {
+        var lang = sharedPreferencesUtils.getData(AppStrings().LANGUAGEKEY) ?: Locale.getDefault().language
+       if(sharedPreferencesUtils.getData("settings_language") == "default"){
+           lang = Locale.getDefault().language
+           sharedPreferencesUtils.putData(AppStrings().LANGUAGEKEY, lang)
+       }
+        val locale = Locale(lang)
+        Locale.setDefault(locale)
+
+        val config = Configuration(newBase.resources.configuration)
+        config.setLocale(locale)
+        config.setLayoutDirection(locale)
+
+        super.attachBaseContext(newBase.createConfigurationContext(config))
+    }
+
 }
+
+    fun applyLanguage(languageCode: String) {
+//        val locale = Locale(languageCode)
+//        Locale.setDefault(locale)
+//
+//        val config = Configuration()
+//        config.setLocale(locale)
+//        config.setLayoutDirection(locale)
+//
+//        val context = AppContext.getContext().createConfigurationContext(config)
+        val locale = Locale(languageCode)
+        Locale.setDefault(locale)
+        Log.i("language", "Applied Language: $languageCode")
+    }
+
+
+
+//fun applyLanguage(languageCode: String) {
+//    val locale = Locale(languageCode)
+//    Locale.setDefault(locale)
+//
+//    val resources = AppContext.getContext().resources
+//    val configuration = Configuration(resources.configuration)
+//
+//    configuration.setLocale(locale)
+//    configuration.setLayoutDirection(locale)
+//
+//    val context = AppContext.getContext().createConfigurationContext(configuration)
+//    resources.updateConfiguration(configuration, resources.displayMetrics)
+//
+//    Log.i("language", "Applied language: $languageCode")
+//    sharedPreferencesUtils.putData(AppStrings().LANGUAGEKEY, languageCode)
+//
+//    AppContext.updateContext(context)
+//}
 
 
 @Composable
@@ -231,7 +302,7 @@ fun CurvedBottomNavigationBar(navController: NavController) {
         ) {
             BottomNavItem(
                 icon = Icons.Default.Home,
-                label = "Home",
+                label = stringResource(R.string.home),
                 isSelected = selectedItem.value == Icons.Default.Home,
                 onClick = {
                     selectedItem.value = Icons.Default.Home
@@ -241,7 +312,7 @@ fun CurvedBottomNavigationBar(navController: NavController) {
 
             BottomNavItem(
                 icon = Icons.Default.Favorite,
-                label = "Favorites",
+                label = stringResource(R.string.favorites),
                 isSelected = selectedItem.value == Icons.Default.Favorite,
                 onClick = {
                     selectedItem.value = Icons.Default.Favorite
@@ -252,7 +323,7 @@ fun CurvedBottomNavigationBar(navController: NavController) {
             Spacer(Modifier.width(56.dp))
             BottomNavItem(
                 icon = Icons.Default.Settings,
-                label = "Settings",
+                label = stringResource(R.string.settings),
                 isSelected = selectedItem.value == Icons.Default.Settings,
                 onClick = {
                     selectedItem.value = Icons.Default.Settings
@@ -262,7 +333,7 @@ fun CurvedBottomNavigationBar(navController: NavController) {
 
             BottomNavItem(
                 icon = Icons.Default.Notifications,
-                label = "Alerts",
+                label = stringResource(R.string.alerts),
                 isSelected = selectedItem.value == Icons.Default.Notifications,
                 onClick = {
                     selectedItem.value = Icons.Default.Notifications

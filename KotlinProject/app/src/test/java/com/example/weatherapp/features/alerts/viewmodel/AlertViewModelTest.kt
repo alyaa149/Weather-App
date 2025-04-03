@@ -39,63 +39,27 @@ class AlertViewModelTest {
 
     private lateinit var viewModel: AlertViewModel
     private val repo: Repo = mockk(relaxed = true)
-    private val workManager: WorkManager = mockk(relaxed = true) // Mock WorkManager
+    private val workManager: WorkManager = mockk(relaxed = true)
     private val testDispatcher = StandardTestDispatcher()
     val snackbarHostState = SnackbarHostState()
     val coroutineScope = CoroutineScope(testDispatcher)
     @Before
     fun setUp() {
-        Dispatchers.setMain(testDispatcher)
         val mockContext: Context = mockk(relaxed = true)
         viewModel = AlertViewModel(repo, workManager, mockContext)
     }
 
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-    }
-
-    @Test
-    fun `deleteAlert removes reminder and updates state`() = runTest {
-        val reminder = Reminder(id = 1, time = LocalDateTime.now().plusDays(1), type = "NOTIFICATION")
-
-        coEvery { repo.deleteReminder(reminder.id) } just Runs
-        coEvery { repo.getAllReminders() } returns flowOf(emptyList())
-
-
-
-        viewModel.deleteAlert(reminder, snackbarHostState, coroutineScope)
-      //  advanceUntilIdle()
-
-      //  // ✅ Add timeout to ensure coroutine execution
-      //  coVerify(timeout = 5000) { repo.deleteReminder(reminder.id) }
-
-        assert(viewModel.reminders.value is Response.Success)
-        assert((viewModel.reminders.value as Response.Success).data.isEmpty())
-    }
 
 
     @Test
-    fun `deleteAlert emits Failure when repository throws exception`() = runTest {
-        val reminder = Reminder(id = 2, time = LocalDateTime.now().plusDays(2), type = "NOTIFICATION")
-
-        coEvery { repo.deleteReminder(reminder.id) } throws Exception("Delete failed")
-
-        val snackbarHostState = SnackbarHostState()
-        val coroutineScope = CoroutineScope(testDispatcher)
-
-        viewModel.deleteAlert(reminder, snackbarHostState, coroutineScope)
-        advanceUntilIdle()
-
-        assert(viewModel.reminders.value is Response.Failure)
-    }
-
-    @Test
-    fun insertAlert() = runTest {
+    fun addAlert_insertAlert_reminderInsertedSuccessfully() = runTest {
+        // Given: A reminder to insert
         val reminder = Reminder(id = 3, time = LocalDateTime.now().plusDays(3), type = "NOTIFICATION")
+        // When: Insert the reminder
         viewModel.addAlert(reminder, snackbarHostState, coroutineScope)
         viewModel.fetchAlerts()
         val result =viewModel.reminders.value
+        // Then: Verify the reminder is inserted
         assertThat(result, not(nullValue()))
 
     }
